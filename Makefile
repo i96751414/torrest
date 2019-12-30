@@ -60,7 +60,6 @@ PROJECT = i96751414
 NAME = torrest
 GO_PKG = github.com/i96751414/torrest
 GO = go
-#GOPATH = $(shell go env GOPATH)
 GIT = git
 DOCKER = docker
 DOCKER_IMAGE = libtorrent-go
@@ -85,6 +84,10 @@ PLATFORMS = \
 	linux-x86 \
 	windows-x64 \
 	windows-x86
+
+ifeq ($(GOPATH),)
+	GOPATH = $(shell go env GOPATH)
+endif
 
 .PHONY: $(PLATFORMS)
 

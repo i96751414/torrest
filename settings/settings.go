@@ -3,19 +3,105 @@ package settings
 import (
 	"encoding/json"
 	"io/ioutil"
+	"path/filepath"
 
 	"github.com/jinzhu/copier"
 )
 
+type UserAgentType int
+
+//noinspection GoSnakeCaseUsage
+const (
+	DefaultUA UserAgentType = iota
+	LibtorrentUA
+	LibtorrentRasterbar_1_1_0_UA
+	BitTorrent_7_5_0_UA
+	BitTorrent_7_4_3_UA
+	UTorrent_3_4_9_UA
+	UTorrent_3_2_0_UA
+	UTorrent_2_2_1_UA
+	Transmission_2_92_UA
+	Deluge_1_3_6_0_UA
+	Deluge_1_3_12_0_UA
+	Vuze_5_7_3_0_UA
+)
+
+type EncryptionPolicy int
+
+const (
+	EncryptionEnabledPolicy EncryptionPolicy = iota
+	EncryptionDisabledPolicy
+	EncryptionForcedPolicy
+)
+
+type ProxyType int
+
+//noinspection GoUnusedConst
+const (
+	ProxyTypeNone ProxyType = iota
+	ProxyTypeSocks4
+	ProxyTypeSocks5
+	ProxyTypeSocks5Password
+	ProxyTypeSocksHTTP
+	ProxyTypeSocksHTTPPassword
+	ProxyTypeI2PSAM
+)
+
+type ProxySettings struct {
+	Type     ProxyType `json:"type"`
+	Port     int       `json:"port"`
+	Hostname string    `json:"hostname"`
+	Username string    `json:"username"`
+	Password string    `json:"password"`
+}
+
 // Settings define the server settings
 type Settings struct {
-	DummySetting string `json:"dummy-setting"`
+	LowerListenPort     int              `json:"lower_listen_port"`
+	UpperListenPort     int              `json:"upper_listen_port"`
+	ListenInterfaces    string           `json:"listen_interfaces"`
+	OutgoingInterfaces  string           `json:"outgoing_interfaces"`
+	DisableDHT          bool             `json:"disable_dht"`
+	DisableUPNP         bool             `json:"disable_upnp"`
+	DownloadPath        string           `json:"download_path"`
+	TorrentsPath        string           `json:"torrents_path"`
+	UserAgent           UserAgentType    `json:"user_agent"`
+	SessionSave         int              `json:"session_save"`
+	TunedStorage        bool             `json:"tuned_storage"`
+	ConnectionsLimit    int              `json:"connections_limit"`
+	LimitAfterBuffering bool             `json:"limit_after_buffering"`
+	MaxDownloadRate     int              `json:"max_download_rate"`
+	MaxUploadRate       int              `json:"max_upload_rate"`
+	ShareRatioLimit     int              `json:"share_ratio_limit"`
+	SeedTimeRatioLimit  int              `json:"seed_time_ratio_limit"`
+	SeedTimeLimit       int              `json:"seed_time_limit"`
+	EncryptionPolicy    EncryptionPolicy `json:"encryption_policy"`
+	Proxy               *ProxySettings   `json:"proxy"`
 }
 
 // Load loads settings from path
 func Load(path string) (s *Settings, err error) {
 	s = &Settings{
-		DummySetting: "test",
+		LowerListenPort:     6889,
+		UpperListenPort:     7000,
+		ListenInterfaces:    "",
+		OutgoingInterfaces:  "",
+		DisableDHT:          false,
+		DisableUPNP:         false,
+		DownloadPath:        "downloads",
+		TorrentsPath:        filepath.Join("downloads", "Torrents"),
+		UserAgent:           DefaultUA,
+		SessionSave:         30,
+		TunedStorage:        false,
+		ConnectionsLimit:    0,
+		LimitAfterBuffering: false,
+		MaxDownloadRate:     0,
+		MaxUploadRate:       0,
+		ShareRatioLimit:     0,
+		SeedTimeRatioLimit:  0,
+		SeedTimeLimit:       0,
+		EncryptionPolicy:    EncryptionEnabledPolicy,
+		Proxy:               nil,
 	}
 
 	if data, e := ioutil.ReadFile(path); e == nil {
@@ -33,7 +119,7 @@ func (s *Settings) Update(data []byte) error {
 // Clone clones the settings
 func (s *Settings) Clone() *Settings {
 	n := new(Settings)
-	copier.Copy(n, s)
+	_ = copier.Copy(n, s)
 	return n
 }
 
