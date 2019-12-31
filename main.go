@@ -39,9 +39,7 @@ func main() {
 	defer cancel()
 
 	m.Handle("/", api.Routes(settingsPath))
-	m.HandleFunc("/shutdown", func(w http.ResponseWriter, r *http.Request) {
-		cancel()
-	})
+	m.HandleFunc("/shutdown", shutdown(cancel))
 
 	go func() {
 		if err := s.ListenAndServe(); err != nil && err != http.ErrServerClosed {
@@ -55,5 +53,21 @@ func main() {
 	log.Info("Shutting down daemon")
 	if err := s.Shutdown(ctx); err != nil && err != context.Canceled {
 		log.Errorf("Failed shutting down http server gracefully: %s", err.Error())
+	}
+}
+
+// @Summary Shutdown
+// @Description shutdown server
+// @ID shutdown
+// @Success 200 "OK"
+// @Router /shutdown [get]
+func shutdown(cancel context.CancelFunc) func(w http.ResponseWriter, r *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		case http.MethodGet:
+			cancel()
+		default:
+			w.WriteHeader(http.StatusNotFound)
+		}
 	}
 }

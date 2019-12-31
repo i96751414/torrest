@@ -57,25 +57,25 @@ type ProxySettings struct {
 
 // Settings define the server settings
 type Settings struct {
-	LowerListenPort     int              `json:"lower_listen_port"`
-	UpperListenPort     int              `json:"upper_listen_port"`
-	ListenInterfaces    string           `json:"listen_interfaces"`
-	OutgoingInterfaces  string           `json:"outgoing_interfaces"`
-	DisableDHT          bool             `json:"disable_dht"`
-	DisableUPNP         bool             `json:"disable_upnp"`
-	DownloadPath        string           `json:"download_path"`
-	TorrentsPath        string           `json:"torrents_path"`
-	UserAgent           UserAgentType    `json:"user_agent"`
-	SessionSave         int              `json:"session_save"`
-	TunedStorage        bool             `json:"tuned_storage"`
-	ConnectionsLimit    int              `json:"connections_limit"`
-	LimitAfterBuffering bool             `json:"limit_after_buffering"`
-	MaxDownloadRate     int              `json:"max_download_rate"`
-	MaxUploadRate       int              `json:"max_upload_rate"`
-	ShareRatioLimit     int              `json:"share_ratio_limit"`
-	SeedTimeRatioLimit  int              `json:"seed_time_ratio_limit"`
-	SeedTimeLimit       int              `json:"seed_time_limit"`
-	EncryptionPolicy    EncryptionPolicy `json:"encryption_policy"`
+	LowerListenPort     int              `json:"lower_listen_port" example:"6889"`
+	UpperListenPort     int              `json:"upper_listen_port" example:"7000"`
+	ListenInterfaces    string           `json:"listen_interfaces" example:""`
+	OutgoingInterfaces  string           `json:"outgoing_interfaces" example:""`
+	DisableDHT          bool             `json:"disable_dht" example:"false"`
+	DisableUPNP         bool             `json:"disable_upnp" example:"false"`
+	DownloadPath        string           `json:"download_path" example:"downloads"`
+	TorrentsPath        string           `json:"torrents_path" example:"downloads/Torrents"`
+	UserAgent           UserAgentType    `json:"user_agent" example:"0"`
+	SessionSave         int              `json:"session_save" example:"30"`
+	TunedStorage        bool             `json:"tuned_storage" example:"false"`
+	ConnectionsLimit    int              `json:"connections_limit" example:"0"`
+	LimitAfterBuffering bool             `json:"limit_after_buffering" example:"false"`
+	MaxDownloadRate     int              `json:"max_download_rate" example:"0"`
+	MaxUploadRate       int              `json:"max_upload_rate" example:"0"`
+	ShareRatioLimit     int              `json:"share_ratio_limit" example:"0"`
+	SeedTimeRatioLimit  int              `json:"seed_time_ratio_limit" example:"0"`
+	SeedTimeLimit       int              `json:"seed_time_limit" example:"0"`
+	EncryptionPolicy    EncryptionPolicy `json:"encryption_policy" example:"0"`
 	Proxy               *ProxySettings   `json:"proxy"`
 }
 

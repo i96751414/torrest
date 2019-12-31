@@ -177,3 +177,7 @@ pull-all:
 pull:
 	docker pull $(PROJECT)/libtorrent-go:$(PLATFORM)
 	docker tag $(PROJECT)/libtorrent-go:$(PLATFORM) libtorrent-go:$(PLATFORM)
+
+# go get -u github.com/swaggo/swag/cmd/swag
+swag:
+	swag init -g ./api/routes.go -o ./docs

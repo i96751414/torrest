@@ -1,0 +1,157 @@
+basePath: /
+definitions:
+  api.ErrorResponse:
+    properties:
+      error:
+        example: Houston, we have a problem!
+        type: string
+    type: object
+  api.StatusResponse:
+    properties:
+      status:
+        example: ok
+        type: string
+    type: object
+  settings.ProxySettings:
+    properties:
+      hostname:
+        type: string
+      password:
+        type: string
+      port:
+        type: integer
+      type:
+        type: integer
+      username:
+        type: string
+    type: object
+  settings.Settings:
+    properties:
+      connections_limit:
+        example: 0
+        type: integer
+      disable_dht:
+        example: false
+        type: boolean
+      disable_upnp:
+        example: false
+        type: boolean
+      download_path:
+        example: downloads
+        type: string
+      encryption_policy:
+        example: 0
+        type: integer
+      limit_after_buffering:
+        example: false
+        type: boolean
+      listen_interfaces:
+        type: string
+      lower_listen_port:
+        example: 6889
+        type: integer
+      max_download_rate:
+        example: 0
+        type: integer
+      max_upload_rate:
+        example: 0
+        type: integer
+      outgoing_interfaces:
+        type: string
+      proxy:
+        $ref: '#/definitions/settings.ProxySettings'
+        type: object
+      seed_time_limit:
+        example: 0
+        type: integer
+      seed_time_ratio_limit:
+        example: 0
+        type: integer
+      session_save:
+        example: 30
+        type: integer
+      share_ratio_limit:
+        example: 0
+        type: integer
+      torrents_path:
+        example: downloads/Torrents
+        type: string
+      tuned_storage:
+        example: false
+        type: boolean
+      upper_listen_port:
+        example: 7000
+        type: integer
+      user_agent:
+        example: 0
+        type: integer
+    type: object
+info:
+  contact:
+    email: i96751414@gmail.com
+    name: i96751414
+    url: https://github.com/i96751414/torrest
+  description: Torrent server with a REST API.
+  license:
+    name: GPL3.0
+    url: https://www.gnu.org/licenses/gpl-3.0.html
+  title: Torrest API
+  version: "1.0"
+paths:
+  /settings/get:
+    get:
+      description: get settings in JSON object
+      operationId: get-settings
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/settings.Settings'
+      summary: Get current settings
+  /settings/set:
+    post:
+      consumes:
+      - application/json
+      description: set settings given the provided JSON object
+      operationId: set-settings
+      parameters:
+      - description: Settings to be set
+        in: body
+        name: default
+        schema:
+          $ref: '#/definitions/settings.Settings'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/settings.Settings'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      summary: Set settings
+  /shutdown:
+    get:
+      description: shutdown server
+      operationId: shutdown
+      responses:
+        "200":
+          description: OK
+      summary: Shutdown
+  /status:
+    get:
+      description: check server status
+      operationId: status
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.StatusResponse'
+      summary: Status
+swagger: "2.0"

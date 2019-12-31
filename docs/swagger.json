@@ -1,0 +1,228 @@
+{
+    "swagger": "2.0",
+    "info": {
+        "description": "Torrent server with a REST API.",
+        "title": "Torrest API",
+        "contact": {
+            "name": "i96751414",
+            "url": "https://github.com/i96751414/torrest",
+            "email": "i96751414@gmail.com"
+        },
+        "license": {
+            "name": "GPL3.0",
+            "url": "https://www.gnu.org/licenses/gpl-3.0.html"
+        },
+        "version": "1.0"
+    },
+    "basePath": "/",
+    "paths": {
+        "/settings/get": {
+            "get": {
+                "description": "get settings in JSON object",
+                "produces": [
+                    "application/json"
+                ],
+                "summary": "Get current settings",
+                "operationId": "get-settings",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/settings.Settings"
+                        }
+                    }
+                }
+            }
+        },
+        "/settings/set": {
+            "post": {
+                "description": "set settings given the provided JSON object",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "summary": "Set settings",
+                "operationId": "set-settings",
+                "parameters": [
+                    {
+                        "description": "Settings to be set",
+                        "name": "default",
+                        "in": "body",
+                        "schema": {
+                            "$ref": "#/definitions/settings.Settings"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/settings.Settings"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/shutdown": {
+            "get": {
+                "description": "shutdown server",
+                "summary": "Shutdown",
+                "operationId": "shutdown",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/status": {
+            "get": {
+                "description": "check server status",
+                "produces": [
+                    "application/json"
+                ],
+                "summary": "Status",
+                "operationId": "status",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/api.StatusResponse"
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "definitions": {
+        "api.ErrorResponse": {
+            "type": "object",
+            "properties": {
+                "error": {
+                    "type": "string",
+                    "example": "Houston, we have a problem!"
+                }
+            }
+        },
+        "api.StatusResponse": {
+            "type": "object",
+            "properties": {
+                "status": {
+                    "type": "string",
+                    "example": "ok"
+                }
+            }
+        },
+        "settings.ProxySettings": {
+            "type": "object",
+            "properties": {
+                "hostname": {
+                    "type": "string"
+                },
+                "password": {
+                    "type": "string"
+                },
+                "port": {
+                    "type": "integer"
+                },
+                "type": {
+                    "type": "integer"
+                },
+                "username": {
+                    "type": "string"
+                }
+            }
+        },
+        "settings.Settings": {
+            "type": "object",
+            "properties": {
+                "connections_limit": {
+                    "type": "integer",
+                    "example": 0
+                },
+                "disable_dht": {
+                    "type": "boolean",
+                    "example": false
+                },
+                "disable_upnp": {
+                    "type": "boolean",
+                    "example": false
+                },
+                "download_path": {
+                    "type": "string",
+                    "example": "downloads"
+                },
+                "encryption_policy": {
+                    "type": "integer",
+                    "example": 0
+                },
+                "limit_after_buffering": {
+                    "type": "boolean",
+                    "example": false
+                },
+                "listen_interfaces": {
+                    "type": "string"
+                },
+                "lower_listen_port": {
+                    "type": "integer",
+                    "example": 6889
+                },
+                "max_download_rate": {
+                    "type": "integer",
+                    "example": 0
+                },
+                "max_upload_rate": {
+                    "type": "integer",
+                    "example": 0
+                },
+                "outgoing_interfaces": {
+                    "type": "string"
+                },
+                "proxy": {
+                    "type": "object",
+                    "$ref": "#/definitions/settings.ProxySettings"
+                },
+                "seed_time_limit": {
+                    "type": "integer",
+                    "example": 0
+                },
+                "seed_time_ratio_limit": {
+                    "type": "integer",
+                    "example": 0
+                },
+                "session_save": {
+                    "type": "integer",
+                    "example": 30
+                },
+                "share_ratio_limit": {
+                    "type": "integer",
+                    "example": 0
+                },
+                "torrents_path": {
+                    "type": "string",
+                    "example": "downloads/Torrents"
+                },
+                "tuned_storage": {
+                    "type": "boolean",
+                    "example": false
+                },
+                "upper_listen_port": {
+                    "type": "integer",
+                    "example": 7000
+                },
+                "user_agent": {
+                    "type": "integer",
+                    "example": 0
+                }
+            }
+        }
+    }
+}
