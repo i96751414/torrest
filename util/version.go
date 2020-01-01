@@ -7,7 +7,7 @@ import (
 )
 
 var (
-	Version string
+	Version = "development"
 )
 
 func GetVersion() string {

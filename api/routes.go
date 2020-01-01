@@ -1,6 +1,7 @@
 package api
 
 import (
+	"github.com/i96751414/torrest/bittorrent"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -41,7 +42,7 @@ func NewErrorResponse(err error) *ErrorResponse {
 // @BasePath /
 
 // Routes defines all the routes of the server
-func Routes(config *settings.Settings) *gin.Engine {
+func Routes(config *settings.Settings, service *bittorrent.Service) *gin.Engine {
 	gin.SetMode(gin.ReleaseMode)
 
 	r := gin.New()

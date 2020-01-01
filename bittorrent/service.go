@@ -84,7 +84,6 @@ func (s *Service) alertsConsumer() {
 	for {
 		select {
 		case <-s.closing:
-			log.Info("Closing all alert channels...")
 			return
 		default:
 			if s.session.GetHandle().WaitForAlert(ltTimer).Swigcptr() == 0 {

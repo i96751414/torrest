@@ -3,13 +3,16 @@ package main
 import (
 	"context"
 	"flag"
-	"github.com/i96751414/torrest/settings"
 	"net/http"
 	"os"
+	"os/signal"
 	"runtime"
 	"strconv"
+	"syscall"
 
 	"github.com/i96751414/torrest/api"
+	"github.com/i96751414/torrest/bittorrent"
+	"github.com/i96751414/torrest/settings"
 	"github.com/op/go-logging"
 )
 
@@ -31,13 +34,6 @@ func main() {
 	flag.StringVar(&settingsPath, "settings", "settings.json", "Settings path")
 	flag.Parse()
 
-	config, err := settings.Load(settingsPath)
-	if err != nil {
-		log.Errorf("Failed loading settings: %s", err)
-	}
-
-	log.Infof("Starting torrent daemon on port %d", listenPort)
-
 	m := http.NewServeMux()
 	s := http.Server{
 		Addr:    ":" + strconv.Itoa(listenPort),
@@ -47,16 +43,33 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	m.Handle("/", api.Routes(config))
+	log.Info("Loading configs")
+	config, err := settings.Load(settingsPath)
+	if err != nil {
+		log.Errorf("Failed loading settings: %s", err)
+	}
+
+	log.Info("Starting bittorrent service")
+	service := bittorrent.NewService(config.Clone())
+	defer service.Close()
+
+	m.Handle("/", api.Routes(config, service))
 	m.HandleFunc("/shutdown", shutdown(cancel))
 
+	log.Infof("Starting torrent daemon on port %d", listenPort)
 	go func() {
 		if err := s.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			log.Fatal(err)
 		}
 	}()
 
-	<-ctx.Done()
+	quit := make(chan os.Signal)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+
+	select {
+	case <-ctx.Done():
+	case <-quit:
+	}
 
 	// Shutdown the server when the context is canceled
 	log.Info("Shutting down daemon")
