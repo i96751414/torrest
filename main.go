@@ -71,7 +71,6 @@ func main() {
 	case <-quit:
 	}
 
-	// Shutdown the server when the context is canceled
 	log.Info("Shutting down daemon")
 	if err := s.Shutdown(ctx); err != nil && err != context.Canceled {
 		log.Errorf("Failed shutting down http server gracefully: %s", err.Error())

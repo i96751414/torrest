@@ -1,6 +1,7 @@
 package api
 
 import (
+	"github.com/i96751414/torrest/bittorrent"
 	"io/ioutil"
 	"net/http"
 
@@ -29,7 +30,7 @@ func getSettings(config *settings.Settings) gin.HandlerFunc {
 // @Success 200 {object} settings.Settings
 // @Failure 500 {object} ErrorResponse
 // @Router /settings/set [post]
-func setSettings(config *settings.Settings) gin.HandlerFunc {
+func setSettings(config *settings.Settings, service *bittorrent.Service) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		body, err := ioutil.ReadAll(ctx.Request.Body)
 		if err != nil {
@@ -43,6 +44,7 @@ func setSettings(config *settings.Settings) gin.HandlerFunc {
 		if err := config.Save(); err != nil {
 			log.Errorf("Failed saving settings: %s", err)
 		}
+		service.Reconfigure(config.Clone())
 		ctx.JSON(http.StatusOK, config)
 	}
 }
