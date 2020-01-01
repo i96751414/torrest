@@ -41,12 +41,7 @@ func NewErrorResponse(err error) *ErrorResponse {
 // @BasePath /
 
 // Routes defines all the routes of the server
-func Routes(settingsPath string) *gin.Engine {
-	config, err := settings.Load(settingsPath)
-	if err != nil {
-		log.Errorf("Failed loading settings: %s", err)
-	}
-
+func Routes(config *settings.Settings) *gin.Engine {
 	gin.SetMode(gin.ReleaseMode)
 
 	r := gin.New()
@@ -55,7 +50,7 @@ func Routes(settingsPath string) *gin.Engine {
 
 	r.GET("/status", status)
 	r.GET("/settings/get", getSettings(config))
-	r.POST("/settings/set", setSettings(settingsPath, config))
+	r.POST("/settings/set", setSettings(config))
 
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler,
 		ginSwagger.URL("/swagger/doc.json")))

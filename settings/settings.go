@@ -57,6 +57,8 @@ type ProxySettings struct {
 
 // Settings define the server settings
 type Settings struct {
+	settingsPath string `json:"-"`
+
 	LowerListenPort     int              `json:"lower_listen_port" example:"6889"`
 	UpperListenPort     int              `json:"upper_listen_port" example:"7000"`
 	ListenInterfaces    string           `json:"listen_interfaces" example:""`
@@ -79,9 +81,9 @@ type Settings struct {
 	Proxy               *ProxySettings   `json:"proxy"`
 }
 
-// Load loads settings from path
-func Load(path string) (s *Settings, err error) {
-	s = &Settings{
+func DefaultSettings() *Settings {
+	return &Settings{
+		settingsPath:        "settings.json",
 		LowerListenPort:     6889,
 		UpperListenPort:     7000,
 		ListenInterfaces:    "",
@@ -103,12 +105,23 @@ func Load(path string) (s *Settings, err error) {
 		EncryptionPolicy:    EncryptionEnabledPolicy,
 		Proxy:               nil,
 	}
+}
+
+// Load loads settings from path
+func Load(path string) (s *Settings, err error) {
+	s = DefaultSettings()
+	s.SetSettingsPath(path)
 
 	if data, e := ioutil.ReadFile(path); e == nil {
 		err = s.Update(data)
 	}
 
 	return s, err
+}
+
+// SetSettingsPath sets the path where to save settings
+func (s *Settings) SetSettingsPath(path string) {
+	s.settingsPath = path
 }
 
 // Update updates the settings with the json object provided
@@ -124,10 +137,10 @@ func (s *Settings) Clone() *Settings {
 }
 
 // Save saves the current settings to path
-func (s *Settings) Save(path string) (err error) {
+func (s *Settings) Save() (err error) {
 	var data []byte
 	if data, err = json.MarshalIndent(s, "", "   "); err == nil {
-		err = ioutil.WriteFile(path, data, 0644)
+		err = ioutil.WriteFile(s.settingsPath, data, 0644)
 	}
 	return
 }

@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"flag"
+	"github.com/i96751414/torrest/settings"
 	"net/http"
 	"os"
 	"runtime"
@@ -30,15 +31,23 @@ func main() {
 	flag.StringVar(&settingsPath, "settings", "settings.json", "Settings path")
 	flag.Parse()
 
+	config, err := settings.Load(settingsPath)
+	if err != nil {
+		log.Errorf("Failed loading settings: %s", err)
+	}
+
 	log.Infof("Starting torrent daemon on port %d", listenPort)
 
 	m := http.NewServeMux()
-	s := http.Server{Addr: ":" + strconv.Itoa(listenPort), Handler: m}
+	s := http.Server{
+		Addr:    ":" + strconv.Itoa(listenPort),
+		Handler: m,
+	}
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	m.Handle("/", api.Routes(settingsPath))
+	m.Handle("/", api.Routes(config))
 	m.HandleFunc("/shutdown", shutdown(cancel))
 
 	go func() {

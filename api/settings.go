@@ -29,7 +29,7 @@ func getSettings(config *settings.Settings) gin.HandlerFunc {
 // @Success 200 {object} settings.Settings
 // @Failure 500 {object} ErrorResponse
 // @Router /settings/set [post]
-func setSettings(settingsPath string, config *settings.Settings) gin.HandlerFunc {
+func setSettings(config *settings.Settings) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		body, err := ioutil.ReadAll(ctx.Request.Body)
 		if err != nil {
@@ -40,7 +40,7 @@ func setSettings(settingsPath string, config *settings.Settings) gin.HandlerFunc
 			ctx.JSON(http.StatusInternalServerError, NewErrorResponse(err))
 			return
 		}
-		if err := config.Save(settingsPath); err != nil {
+		if err := config.Save(); err != nil {
 			log.Errorf("Failed saving settings: %s", err)
 		}
 		ctx.JSON(http.StatusOK, config)
