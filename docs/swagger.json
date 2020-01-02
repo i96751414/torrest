@@ -16,6 +16,45 @@
     },
     "basePath": "/",
     "paths": {
+        "/add/magnet": {
+            "get": {
+                "description": "add magnet to service",
+                "produces": [
+                    "application/json"
+                ],
+                "summary": "Add Magnet",
+                "operationId": "add-magnet",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "magnet URI",
+                        "name": "uri",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/api.NewTorrentResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/settings/get": {
             "get": {
                 "description": "get settings in JSON object",
@@ -109,6 +148,15 @@
                 "error": {
                     "type": "string",
                     "example": "Houston, we have a problem!"
+                }
+            }
+        },
+        "api.NewTorrentResponse": {
+            "type": "object",
+            "properties": {
+                "info_hash": {
+                    "type": "string",
+                    "example": "000102030405060708090a0b0c0d0e0f10111213"
                 }
             }
         },

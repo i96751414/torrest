@@ -53,11 +53,15 @@ func DecodeTorrentData(data []byte) (*TorrentFileRaw, error) {
 }
 
 func NewTorrent(service *Service, handle libtorrent.TorrentHandle) *Torrent {
+	status := handle.Status()
+	paused := status.GetPaused() && !status.GetAutoManaged()
+
 	return &Torrent{
-		service: service,
-		handle:  handle,
-		mu:      &sync.RWMutex{},
-		closing: make(chan interface{}),
+		service:  service,
+		handle:   handle,
+		mu:       &sync.RWMutex{},
+		closing:  make(chan interface{}),
+		isPaused: paused,
 	}
 }
 

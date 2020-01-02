@@ -6,6 +6,12 @@ definitions:
         example: Houston, we have a problem!
         type: string
     type: object
+  api.NewTorrentResponse:
+    properties:
+      info_hash:
+        example: 000102030405060708090a0b0c0d0e0f10111213
+        type: string
+    type: object
   api.StatusResponse:
     properties:
       status:
@@ -98,6 +104,32 @@ info:
   title: Torrest API
   version: "1.0"
 paths:
+  /add/magnet:
+    get:
+      description: add magnet to service
+      operationId: add-magnet
+      parameters:
+      - description: magnet URI
+        in: query
+        name: uri
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.NewTorrentResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      summary: Add Magnet
   /settings/get:
     get:
       description: get settings in JSON object

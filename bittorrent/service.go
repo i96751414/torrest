@@ -2,6 +2,7 @@ package bittorrent
 
 import (
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"math/rand"
@@ -23,6 +24,7 @@ var log = logging.MustGetLogger("bittorrent")
 const (
 	libtorrentAlertWaitTime = 1
 	libtorrentProgressTime  = 1
+	maxFilesPerTorrent      = 1000
 )
 
 //noinspection GoUnusedConst
@@ -76,6 +78,47 @@ func NewService(config *settings.Settings) *Service {
 	go s.downloadProgress()
 
 	return s
+}
+
+func (s *Service) AddMagnet(magnet string) (infoHash string, err error) {
+	torrentParams := libtorrent.NewAddTorrentParams()
+	defer libtorrent.DeleteAddTorrentParams(torrentParams)
+	errorCode := libtorrent.NewErrorCode()
+	defer libtorrent.DeleteErrorCode(errorCode)
+
+	libtorrent.ParseMagnetUri(magnet, torrentParams, errorCode)
+	if errorCode.Failed() {
+		return "", errors.New(errorCode.Message().(string))
+	}
+
+	torrentParams.SetSavePath(s.config.DownloadPath)
+	// Make sure we do not download anything yet
+	filesPriorities := libtorrent.NewStdVectorChar()
+	defer libtorrent.DeleteStdVectorChar(filesPriorities)
+	for i := maxFilesPerTorrent; i > 0; i-- {
+		filesPriorities.Add(0)
+	}
+	torrentParams.SetFilePriorities(filesPriorities)
+
+	shaHash := torrentParams.GetInfoHash().ToString()
+	infoHash = hex.EncodeToString([]byte(shaHash))
+
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if _, exists := s.torrents[infoHash]; exists {
+		err = errors.New("magnet was previously added")
+	} else {
+		torrentHandle := s.session.GetHandle().AddTorrent(torrentParams)
+		if torrentHandle == nil || !torrentHandle.IsValid() {
+			log.Errorf("Error adding magnet %s", magnet)
+			err = errors.New("failed loading magnet")
+		} else {
+			s.torrents[infoHash] = NewTorrent(s, torrentHandle)
+		}
+	}
+
+	return
 }
 
 func (s *Service) alertsConsumer() {
@@ -470,60 +513,77 @@ func (s *Service) stopServices() {
 	s.session.GetHandle().ApplySettings(s.settingsPack)
 }
 
-func (s *Service) loadTorrentFiles() {
+func (s *Service) AddTorrentFile(torrentFile string) (infoHash string, err error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	// TODO: Make sure we have this torrent on our torrents folder
 
-	files, _ := filepath.Glob(filepath.Join(s.config.TorrentsPath, "*.torrent"))
+	log.Infof("Loading torrent file %s", torrentFile)
 
-	for _, torrentFile := range files {
-		log.Infof("Loading torrent file %s", torrentFile)
+	torrentParams := libtorrent.NewAddTorrentParams()
+	defer libtorrent.DeleteAddTorrentParams(torrentParams)
+	info := libtorrent.NewTorrentInfo(torrentFile)
+	defer libtorrent.DeleteTorrentInfo(info)
 
-		torrentParams := libtorrent.NewAddTorrentParams()
-		info := libtorrent.NewTorrentInfo(torrentFile)
-		torrentParams.SetTorrentInfo(info)
-		torrentParams.SetSavePath(s.config.DownloadPath)
+	torrentParams.SetTorrentInfo(info)
+	torrentParams.SetSavePath(s.config.DownloadPath)
+	// Make sure we do not download anything yet
+	filesPriorities := libtorrent.NewStdVectorChar()
+	defer libtorrent.DeleteStdVectorChar(filesPriorities)
+	for i := maxFilesPerTorrent; i > 0; i-- {
+		filesPriorities.Add(0)
+	}
+	torrentParams.SetFilePriorities(filesPriorities)
 
-		shaHash := info.InfoHash().ToString()
-		infoHash := hex.EncodeToString([]byte(shaHash))
+	shaHash := info.InfoHash().ToString()
+	infoHash = hex.EncodeToString([]byte(shaHash))
+	fastResumeFile := strings.TrimSuffix(torrentFile, ".torrent") + ".fastresume"
 
-		fastResumeFile := strings.TrimSuffix(torrentFile, ".torrent") + ".fastresume"
-
-		if _, err := os.Stat(fastResumeFile); err == nil {
-			fastResumeData, err := ioutil.ReadFile(fastResumeFile)
-			if err != nil {
-				log.Errorf("Error reading fastresume file: %s", err)
-				_ = os.Remove(fastResumeFile)
-			} else {
-				fastResumeVector := libtorrent.NewStdVectorChar()
-				for _, c := range fastResumeData {
-					fastResumeVector.Add(c)
-				}
-				torrentParams.SetResumeData(fastResumeVector)
-				libtorrent.DeleteStdVectorChar(fastResumeVector)
+	if _, e := os.Stat(fastResumeFile); e == nil {
+		if fastResumeData, e := ioutil.ReadFile(fastResumeFile); e != nil {
+			log.Errorf("Error reading fastresume file: %s", e)
+			if e := os.Remove(fastResumeFile); e != nil {
+				log.Errorf("Failed to remove fastresume file '%s': %s", fastResumeFile, e)
 			}
+		} else {
+			fastResumeVector := libtorrent.NewStdVectorChar()
+			defer libtorrent.DeleteStdVectorChar(fastResumeVector)
+			for _, c := range fastResumeData {
+				fastResumeVector.Add(c)
+			}
+			torrentParams.SetResumeData(fastResumeVector)
 		}
+	}
 
+	if _, exists := s.torrents[infoHash]; exists {
+		err = errors.New("torrent was previously added")
+	} else {
 		torrentHandle := s.session.GetHandle().AddTorrent(torrentParams)
-		libtorrent.DeleteAddTorrentParams(torrentParams)
-		libtorrent.DeleteTorrentInfo(info)
-
-		if torrentHandle == nil {
+		if torrentHandle == nil || !torrentHandle.IsValid() {
 			log.Errorf("Error adding torrent file for %s", torrentFile)
-			if _, err := os.Stat(torrentFile); err == nil {
-				if err := os.Remove(torrentFile); err != nil {
-					log.Errorf("Failed to remove torrent file '%s': %s", torrentFile, err)
+			err = errors.New("failed loading torrent")
+			if _, e := os.Stat(torrentFile); e == nil {
+				if e := os.Remove(torrentFile); e != nil {
+					log.Errorf("Failed to remove torrent file '%s': %s", torrentFile, e)
 				}
 			}
-			if _, err := os.Stat(fastResumeFile); err == nil {
-				if err := os.Remove(fastResumeFile); err != nil {
-					log.Errorf("Failed to remove fastresume file '%s': %s", fastResumeFile, err)
+			if _, e := os.Stat(fastResumeFile); e == nil {
+				if e := os.Remove(fastResumeFile); e != nil {
+					log.Errorf("Failed to remove fastresume file '%s': %s", fastResumeFile, e)
 				}
 			}
-			continue
 		} else {
 			s.torrents[infoHash] = NewTorrent(s, torrentHandle)
 		}
+	}
+
+	return
+}
+
+func (s *Service) loadTorrentFiles() {
+	files, _ := filepath.Glob(filepath.Join(s.config.TorrentsPath, "*.torrent"))
+	for _, torrentFile := range files {
+		_, _ = s.AddTorrentFile(torrentFile)
 	}
 
 	log.Info("Cleaning up stale .parts files...")

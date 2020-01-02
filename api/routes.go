@@ -52,6 +52,7 @@ func Routes(config *settings.Settings, service *bittorrent.Service) *gin.Engine 
 	r.GET("/status", status)
 	r.GET("/settings/get", getSettings(config))
 	r.POST("/settings/set", setSettings(config, service))
+	r.GET("/add/magnet", addMagnet(service))
 
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler,
 		ginSwagger.URL("/swagger/doc.json")))
