@@ -58,17 +58,8 @@ func NewService(config *settings.Settings) *Service {
 		closing: make(chan interface{}),
 	}
 
-	if _, err := os.Stat(s.config.DownloadPath); os.IsNotExist(err) {
-		if err := os.Mkdir(s.config.DownloadPath, 0755); err != nil {
-			log.Error("Unable to create Downloads folder")
-		}
-	}
-
-	if _, err := os.Stat(s.config.TorrentsPath); os.IsNotExist(err) {
-		if err := os.Mkdir(s.config.TorrentsPath, 0755); err != nil {
-			log.Error("Unable to create Torrents folder")
-		}
-	}
+	createDir(s.config.DownloadPath)
+	createDir(s.config.TorrentsPath)
 
 	s.configure()
 	s.loadTorrentFiles()
@@ -516,7 +507,6 @@ func (s *Service) stopServices() {
 func (s *Service) AddTorrentFile(torrentFile string) (infoHash string, err error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	// TODO: Make sure we have this torrent on our torrents folder
 
 	log.Infof("Loading torrent file %s", torrentFile)
 
@@ -537,14 +527,12 @@ func (s *Service) AddTorrentFile(torrentFile string) (infoHash string, err error
 
 	shaHash := info.InfoHash().ToString()
 	infoHash = hex.EncodeToString([]byte(shaHash))
-	fastResumeFile := strings.TrimSuffix(torrentFile, ".torrent") + ".fastresume"
+	fastResumeFile := s.fastResumeFilePath(infoHash)
 
 	if _, e := os.Stat(fastResumeFile); e == nil {
 		if fastResumeData, e := ioutil.ReadFile(fastResumeFile); e != nil {
 			log.Errorf("Error reading fastresume file: %s", e)
-			if e := os.Remove(fastResumeFile); e != nil {
-				log.Errorf("Failed to remove fastresume file '%s': %s", fastResumeFile, e)
-			}
+			deleteFile(fastResumeFile)
 		} else {
 			fastResumeVector := libtorrent.NewStdVectorChar()
 			defer libtorrent.DeleteStdVectorChar(fastResumeVector)
@@ -562,17 +550,19 @@ func (s *Service) AddTorrentFile(torrentFile string) (infoHash string, err error
 		if torrentHandle == nil || !torrentHandle.IsValid() {
 			log.Errorf("Error adding torrent file for %s", torrentFile)
 			err = errors.New("failed loading torrent")
-			if _, e := os.Stat(torrentFile); e == nil {
-				if e := os.Remove(torrentFile); e != nil {
-					log.Errorf("Failed to remove torrent file '%s': %s", torrentFile, e)
-				}
-			}
-			if _, e := os.Stat(fastResumeFile); e == nil {
-				if e := os.Remove(fastResumeFile); e != nil {
-					log.Errorf("Failed to remove fastresume file '%s': %s", fastResumeFile, e)
-				}
-			}
+			s.deletePartsFile(infoHash)
+			s.deleteFastResumeFile(infoHash)
+			s.deleteTorrentFile(infoHash)
 		} else {
+			torrentDst := s.torrentPath(infoHash)
+			fi1, e1 := os.Stat(torrentFile)
+			fi2, e2 := os.Stat(torrentDst)
+			if e1 != nil || e2 != nil || !os.SameFile(fi1, fi2) {
+				log.Infof("Copying torrent %s", infoHash)
+				if err := copyFileContents(torrentFile, torrentDst); err != nil {
+					log.Errorf("Failed copying torrent: %s", err)
+				}
+			}
 			s.torrents[infoHash] = NewTorrent(s, torrentHandle)
 		}
 	}
@@ -589,15 +579,9 @@ func (s *Service) loadTorrentFiles() {
 	log.Info("Cleaning up stale .parts files...")
 	partsFiles, _ := filepath.Glob(filepath.Join(s.config.DownloadPath, "*.parts"))
 	for _, partsFile := range partsFiles {
-		infoHash := strings.TrimSuffix(filepath.Base(partsFile), ".parts")
-		if _, exists := s.torrents[infoHash]; exists {
-			continue
-		} else {
-			if err := os.Remove(partsFile); err != nil {
-				log.Errorf("Failed to remove parts file '%s': %s", partsFile, err)
-			} else {
-				log.Info("Removed", partsFile)
-			}
+		infoHash := strings.TrimPrefix(strings.TrimSuffix(filepath.Base(partsFile), ".parts"), ".")
+		if _, exists := s.torrents[infoHash]; !exists {
+			deleteFile(partsFile)
 		}
 	}
 }
@@ -703,7 +687,9 @@ func (s *Service) RemoveTorrent(infoHash string, removeFiles bool) bool {
 	defer s.mu.Unlock()
 
 	if torrent, exists := s.torrents[infoHash]; exists {
-		// TODO: delete stale files
+		s.deletePartsFile(infoHash)
+		s.deleteFastResumeFile(infoHash)
+		s.deleteTorrentFile(infoHash)
 
 		var flags int
 		if removeFiles {
@@ -715,4 +701,28 @@ func (s *Service) RemoveTorrent(infoHash string, removeFiles bool) bool {
 	}
 
 	return false
+}
+
+func (s *Service) partsFilePath(infoHash string) string {
+	return filepath.Join(s.config.DownloadPath, fmt.Sprintf(".%s.parts", infoHash))
+}
+
+func (s *Service) deletePartsFile(infoHash string) {
+	deleteFile(s.partsFilePath(infoHash))
+}
+
+func (s *Service) fastResumeFilePath(infoHash string) string {
+	return filepath.Join(s.config.TorrentsPath, fmt.Sprintf("%s.fastresume", infoHash))
+}
+
+func (s *Service) deleteFastResumeFile(infoHash string) {
+	deleteFile(s.fastResumeFilePath(infoHash))
+}
+
+func (s *Service) torrentPath(infoHash string) string {
+	return filepath.Join(s.config.TorrentsPath, fmt.Sprintf("%s.torrent", infoHash))
+}
+
+func (s *Service) deleteTorrentFile(infoHash string) {
+	deleteFile(s.torrentPath(infoHash))
 }
