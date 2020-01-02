@@ -22,6 +22,10 @@ type ErrorResponse struct {
 	Error string `json:"error" example:"Houston, we have a problem!"`
 }
 
+type MessageResponse struct {
+	Message string `json:"message" example:"done"`
+}
+
 func NewErrorResponse(err error) *ErrorResponse {
 	return &ErrorResponse{
 		Error: err.Error(),
@@ -53,6 +57,7 @@ func Routes(config *settings.Settings, service *bittorrent.Service) *gin.Engine 
 	r.GET("/settings/get", getSettings(config))
 	r.POST("/settings/set", setSettings(config, service))
 	r.GET("/add/magnet", addMagnet(service))
+	r.GET("/remove/:infoHash", removeTorrent(service))
 
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler,
 		ginSwagger.URL("/swagger/doc.json")))

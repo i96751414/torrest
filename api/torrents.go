@@ -1,6 +1,7 @@
 package api
 
 import (
+	"fmt"
 	"net/http"
 	"strings"
 
@@ -32,6 +33,28 @@ func addMagnet(service *bittorrent.Service) gin.HandlerFunc {
 			ctx.JSON(http.StatusInternalServerError, NewErrorResponse(err))
 		} else {
 			ctx.JSON(http.StatusOK, NewTorrentResponse{InfoHash: infoHash})
+		}
+	}
+}
+
+// @Summary Remove Torrent
+// @Description remove torrent from service
+// @ID remove-torrent
+// @Produce  json
+// @Param infoHash path string true "torrent info hash"
+// @Param delete query boolean false "delete files"
+// @Success 200 {object} MessageResponse
+// @Failure 404 {object} ErrorResponse
+// @Router /remove/{infoHash} [get]
+func removeTorrent(service *bittorrent.Service) gin.HandlerFunc {
+	return func(ctx *gin.Context) {
+		infoHash := ctx.Param("infoHash")
+		removeFiles := ctx.DefaultQuery("delete", "true") == "true"
+
+		if service.RemoveTorrent(infoHash, removeFiles) {
+			ctx.JSON(http.StatusOK, MessageResponse{Message: fmt.Sprintf("Torrent '%s' deleted", infoHash)})
+		} else {
+			ctx.JSON(http.StatusNotFound, ErrorResponse{Error: fmt.Sprintf("No such info hash '%s'", infoHash)})
 		}
 	}
 }

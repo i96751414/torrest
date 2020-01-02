@@ -6,6 +6,12 @@ definitions:
         example: Houston, we have a problem!
         type: string
     type: object
+  api.MessageResponse:
+    properties:
+      message:
+        example: done
+        type: string
+    type: object
   api.NewTorrentResponse:
     properties:
       info_hash:
@@ -130,6 +136,32 @@ paths:
           schema:
             $ref: '#/definitions/api.ErrorResponse'
       summary: Add Magnet
+  /remove/{infoHash}:
+    get:
+      description: remove torrent from service
+      operationId: remove-torrent
+      parameters:
+      - description: torrent info hash
+        in: path
+        name: infoHash
+        required: true
+        type: string
+      - description: delete files
+        in: query
+        name: delete
+        type: boolean
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.MessageResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      summary: Remove Torrent
   /settings/get:
     get:
       description: get settings in JSON object
