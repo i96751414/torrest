@@ -13,6 +13,8 @@ type NewTorrentResponse struct {
 	InfoHash string `json:"info_hash" example:"000102030405060708090a0b0c0d0e0f10111213"`
 }
 
+type FileInfoResponse []*bittorrent.FileInfo
+
 // @Summary Add Magnet
 // @Description add magnet to service
 // @ID add-magnet
@@ -75,6 +77,34 @@ func torrentStatus(service *bittorrent.Service) gin.HandlerFunc {
 		} else {
 			ctx.JSON(http.StatusNotFound, NewErrorResponse(err))
 		}
+	}
+}
 
+// @Summary Get Torrent Files
+// @Description get a list of the torrent files and its details
+// @ID torrent-files
+// @Produce  json
+// @Param infoHash path string true "torrent info hash"
+// @Success 200 {object} FileInfoResponse
+// @Failure 404 {object} ErrorResponse
+// @Failure 500 {object} ErrorResponse
+// @Router /torrents/{infoHash}/files [get]
+func torrentFiles(service *bittorrent.Service) gin.HandlerFunc {
+	return func(ctx *gin.Context) {
+		infoHash := ctx.Param("infoHash")
+		if torrent, err := service.GetTorrent(infoHash); err == nil {
+			if torrent.HasMetadata() {
+				files := torrent.Files()
+				response := make(FileInfoResponse, len(files))
+				for i, file := range files {
+					response[i] = file.Info()
+				}
+				ctx.JSON(http.StatusOK, response)
+			} else {
+				ctx.JSON(http.StatusInternalServerError, ErrorResponse{Error: "no metadata"})
+			}
+		} else {
+			ctx.JSON(http.StatusNotFound, NewErrorResponse(err))
+		}
 	}
 }

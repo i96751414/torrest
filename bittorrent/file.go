@@ -20,6 +20,13 @@ type File struct {
 	isBuffering  bool
 }
 
+type FileInfo struct {
+	Id     int    `json:"id"`
+	Length int64  `json:"length"`
+	Path   string `json:"path"`
+	Name   string `json:"name"`
+}
+
 func NewFile(torrent *Torrent, storage libtorrent.FileStorage, index int) *File {
 	return &File{
 		torrent:     torrent,
@@ -29,6 +36,15 @@ func NewFile(torrent *Torrent, storage libtorrent.FileStorage, index int) *File 
 		path:        storage.FilePath(index),
 		name:        storage.FileName(index),
 		pieceLength: int64(torrent.TorrentInfo().PieceLength()),
+	}
+}
+
+func (f *File) Info() *FileInfo {
+	return &FileInfo{
+		Id:     f.index,
+		Length: f.length,
+		Path:   f.path,
+		Name:   f.name,
 	}
 }
 

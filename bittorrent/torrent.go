@@ -2,6 +2,7 @@ package bittorrent
 
 import (
 	"bytes"
+	"errors"
 	"sync"
 
 	"github.com/dustin/go-humanize"
@@ -30,6 +31,7 @@ const (
 type Torrent struct {
 	service      *Service
 	handle       libtorrent.TorrentHandle
+	infoHash     string
 	mu           *sync.RWMutex
 	closing      chan interface{}
 	isPaused     bool
@@ -38,13 +40,22 @@ type Torrent struct {
 }
 
 type TorrentStatus struct {
-	Progress     int      `json:"progress"`
-	Paused       bool     `json:"paused"`
-	State        LTStatus `json:"state"`
-	Seeders      int      `json:"seeders"`
-	SeedersTotal int      `json:"seeders_total"`
-	Peers        int      `json:"peers"`
-	PeersTotal   int      `json:"peers_total"`
+	Name            string   `json:"name"`
+	Progress        float64  `json:"progress"`
+	DownloadRate    int      `json:"download_rate"`
+	UploadRate      int      `json:"upload_rate"`
+	Paused          bool     `json:"paused"`
+	HasMetadata     bool     `json:"has_metadata"`
+	State           LTStatus `json:"state"`
+	Seeders         int      `json:"seeders"`
+	SeedersTotal    int      `json:"seeders_total"`
+	Peers           int      `json:"peers"`
+	PeersTotal      int      `json:"peers_total"`
+	SeedingTime     int      `json:"seeding_time"`
+	FinishedTime    int      `json:"finished_time"`
+	ActiveTime      int      `json:"active_time"`
+	AllTimeDownload int64    `json:"all_time_download"`
+	AllTimeUpload   int64    `json:"all_time_upload"`
 }
 
 type TorrentFileRaw struct {
@@ -62,13 +73,14 @@ func DecodeTorrentData(data []byte) (*TorrentFileRaw, error) {
 	return torrentFile, nil
 }
 
-func NewTorrent(service *Service, handle libtorrent.TorrentHandle) *Torrent {
+func NewTorrent(service *Service, handle libtorrent.TorrentHandle, infoHash string) *Torrent {
 	status := handle.Status()
 	paused := status.GetPaused() && !status.GetAutoManaged()
 
 	return &Torrent{
 		service:  service,
 		handle:   handle,
+		infoHash: infoHash,
 		mu:       &sync.RWMutex{},
 		closing:  make(chan interface{}),
 		isPaused: paused,
@@ -105,18 +117,31 @@ func (t *Torrent) GetState() LTStatus {
 	return t.getState(t.Files()...)
 }
 
+func (t *Torrent) HasMetadata() bool {
+	return t.handle.Status().GetHasMetadata()
+}
+
 func (t *Torrent) GetStatus() *TorrentStatus {
-	status := t.handle.Status()
+	status := t.handle.Status(uint(libtorrent.TorrentHandleQueryName))
 	seeders := status.GetNumSeeds()
 
 	return &TorrentStatus{
-		Progress:     int(100 * status.GetProgress()),
-		Paused:       t.isPaused,
-		State:        t.GetState(),
-		Seeders:      seeders,
-		SeedersTotal: status.GetNumComplete(),
-		Peers:        status.GetNumPeers() - seeders,
-		PeersTotal:   status.GetNumIncomplete(),
+		Name:            status.GetName(),
+		Progress:        float64(status.GetProgress()) * 100,
+		DownloadRate:    status.GetDownloadRate(),
+		UploadRate:      status.GetUploadRate(),
+		Paused:          t.isPaused,
+		HasMetadata:     status.GetHasMetadata(),
+		State:           t.GetState(),
+		Seeders:         seeders,
+		SeedersTotal:    status.GetNumComplete(),
+		Peers:           status.GetNumPeers() - seeders,
+		PeersTotal:      status.GetNumIncomplete(),
+		SeedingTime:     status.GetSeedingTime(),
+		FinishedTime:    status.GetFinishedTime(),
+		ActiveTime:      status.GetActiveTime(),
+		AllTimeDownload: status.GetAllTimeDownload(),
+		AllTimeUpload:   status.GetAllTimeUpload(),
 	}
 }
 
@@ -129,15 +154,22 @@ func (t *Torrent) Files() []*File {
 	defer t.mu.Unlock()
 
 	if t.files == nil {
-		if info := t.TorrentInfo(); info != nil {
-			files := info.Files()
-			t.files = make([]*File, info.NumFiles())
-			for i := 0; i < info.NumFiles(); i++ {
-				t.files[i] = NewFile(t, files, i)
-			}
+		info := t.TorrentInfo()
+		files := info.Files()
+		t.files = make([]*File, info.NumFiles())
+		for i := 0; i < info.NumFiles(); i++ {
+			t.files[i] = NewFile(t, files, i)
 		}
 	}
 	return t.files
+}
+
+func (t *Torrent) GetFile(id int) (*File, error) {
+	files := t.Files()
+	if id < 0 || id >= len(files) {
+		return nil, errors.New("no such file id")
+	}
+	return files[id], nil
 }
 
 func (t *Torrent) getFilesDownloadedBytes() []int64 {

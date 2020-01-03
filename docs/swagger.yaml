@@ -6,6 +6,10 @@ definitions:
         example: Houston, we have a problem!
         type: string
     type: object
+  api.FileInfoResponse:
+    items:
+      $ref: '#/definitions/bittorrent.FileInfo'
+    type: array
   api.MessageResponse:
     properties:
       message:
@@ -24,8 +28,33 @@ definitions:
         example: ok
         type: string
     type: object
+  bittorrent.FileInfo:
+    properties:
+      id:
+        type: integer
+      length:
+        type: integer
+      name:
+        type: string
+      path:
+        type: string
+    type: object
   bittorrent.TorrentStatus:
     properties:
+      active_time:
+        type: integer
+      all_time_download:
+        type: integer
+      all_time_upload:
+        type: integer
+      download_rate:
+        type: integer
+      finished_time:
+        type: integer
+      has_metadata:
+        type: boolean
+      name:
+        type: string
       paused:
         type: boolean
       peers:
@@ -33,12 +62,16 @@ definitions:
       peers_total:
         type: integer
       progress:
-        type: integer
+        type: number
       seeders:
         type: integer
       seeders_total:
         type: integer
+      seeding_time:
+        type: integer
       state:
+        type: integer
+      upload_rate:
         type: integer
     type: object
   settings.ProxySettings:
@@ -209,6 +242,32 @@ paths:
           schema:
             $ref: '#/definitions/api.StatusResponse'
       summary: Status
+  /torrents/{infoHash}/files:
+    get:
+      description: get a list of the torrent files and its details
+      operationId: torrent-files
+      parameters:
+      - description: torrent info hash
+        in: path
+        name: infoHash
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.FileInfoResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      summary: Get Torrent Files
   /torrents/{infoHash}/remove:
     get:
       description: remove torrent from service

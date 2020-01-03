@@ -105,7 +105,7 @@ func (s *Service) AddMagnet(magnet string) (infoHash string, err error) {
 			log.Errorf("Error adding magnet %s", magnet)
 			err = errors.New("failed loading magnet")
 		} else {
-			s.torrents[infoHash] = NewTorrent(s, torrentHandle)
+			s.torrents[infoHash] = NewTorrent(s, torrentHandle, infoHash)
 		}
 	}
 
@@ -563,7 +563,7 @@ func (s *Service) AddTorrentFile(torrentFile string) (infoHash string, err error
 					log.Errorf("Failed copying torrent: %s", err)
 				}
 			}
-			s.torrents[infoHash] = NewTorrent(s, torrentHandle)
+			s.torrents[infoHash] = NewTorrent(s, torrentHandle, infoHash)
 		}
 	}
 

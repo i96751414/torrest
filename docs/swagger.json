@@ -140,6 +140,45 @@
                 }
             }
         },
+        "/torrents/{infoHash}/files": {
+            "get": {
+                "description": "get a list of the torrent files and its details",
+                "produces": [
+                    "application/json"
+                ],
+                "summary": "Get Torrent Files",
+                "operationId": "torrent-files",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "torrent info hash",
+                        "name": "infoHash",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/api.FileInfoResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/torrents/{infoHash}/remove": {
             "get": {
                 "description": "remove torrent from service",
@@ -223,6 +262,12 @@
                 }
             }
         },
+        "api.FileInfoResponse": {
+            "type": "array",
+            "items": {
+                "$ref": "#/definitions/bittorrent.FileInfo"
+            }
+        },
         "api.MessageResponse": {
             "type": "object",
             "properties": {
@@ -250,9 +295,47 @@
                 }
             }
         },
+        "bittorrent.FileInfo": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "integer"
+                },
+                "length": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "path": {
+                    "type": "string"
+                }
+            }
+        },
         "bittorrent.TorrentStatus": {
             "type": "object",
             "properties": {
+                "active_time": {
+                    "type": "integer"
+                },
+                "all_time_download": {
+                    "type": "integer"
+                },
+                "all_time_upload": {
+                    "type": "integer"
+                },
+                "download_rate": {
+                    "type": "integer"
+                },
+                "finished_time": {
+                    "type": "integer"
+                },
+                "has_metadata": {
+                    "type": "boolean"
+                },
+                "name": {
+                    "type": "string"
+                },
                 "paused": {
                     "type": "boolean"
                 },
@@ -263,7 +346,7 @@
                     "type": "integer"
                 },
                 "progress": {
-                    "type": "integer"
+                    "type": "number"
                 },
                 "seeders": {
                     "type": "integer"
@@ -271,7 +354,13 @@
                 "seeders_total": {
                     "type": "integer"
                 },
+                "seeding_time": {
+                    "type": "integer"
+                },
                 "state": {
+                    "type": "integer"
+                },
+                "upload_rate": {
                     "type": "integer"
                 }
             }
