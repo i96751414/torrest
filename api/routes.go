@@ -54,10 +54,15 @@ func Routes(config *settings.Settings, service *bittorrent.Service) *gin.Engine 
 	r.Use(gin.LoggerWithWriter(gin.DefaultWriter))
 
 	r.GET("/status", status)
-	r.GET("/settings/get", getSettings(config))
-	r.POST("/settings/set", setSettings(config, service))
 	r.GET("/add/magnet", addMagnet(service))
-	r.GET("/remove/:infoHash", removeTorrent(service))
+
+	settingsRoutes := r.Group("/settings")
+	settingsRoutes.GET("/get", getSettings(config))
+	settingsRoutes.POST("/set", setSettings(config, service))
+
+	torrentsRoutes := r.Group("/torrents")
+	torrentsRoutes.GET("/:infoHash/remove", removeTorrent(service))
+	torrentsRoutes.GET("/:infoHash/status", torrentStatus(service))
 
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler,
 		ginSwagger.URL("/swagger/doc.json")))

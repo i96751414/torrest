@@ -204,7 +204,7 @@ func (s *Service) onStateChanged(stateAlert libtorrent.StateChangedAlert) {
 		torrentStatus := torrentHandle.Status(uint(libtorrent.TorrentHandleQueryName))
 		shaHash := torrentStatus.GetInfoHash().ToString()
 		infoHash := hex.EncodeToString([]byte(shaHash))
-		if torrent, exists := s.torrents[infoHash]; exists {
+		if torrent, err := s.getTorrent(infoHash); err == nil {
 			torrent.checkAvailableSpace()
 		}
 	}
@@ -682,11 +682,25 @@ func (s *Service) downloadProgress() {
 	}
 }
 
-func (s *Service) RemoveTorrent(infoHash string, removeFiles bool) bool {
+func (s *Service) getTorrent(infoHash string) (*Torrent, error) {
+	if torrent, exists := s.torrents[infoHash]; exists {
+		return torrent, nil
+	}
+	return nil, fmt.Errorf("no such info hash '%s'", infoHash)
+}
+
+func (s *Service) GetTorrent(infoHash string) (*Torrent, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.getTorrent(infoHash)
+}
+
+func (s *Service) RemoveTorrent(infoHash string, removeFiles bool) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	if torrent, exists := s.torrents[infoHash]; exists {
+	torrent, err := s.getTorrent(infoHash)
+	if err == nil {
 		s.deletePartsFile(infoHash)
 		s.deleteFastResumeFile(infoHash)
 		s.deleteTorrentFile(infoHash)
@@ -697,10 +711,9 @@ func (s *Service) RemoveTorrent(infoHash string, removeFiles bool) bool {
 		}
 		s.session.GetHandle().RemoveTorrent(torrent.handle, flags)
 		delete(s.torrents, infoHash)
-		return true
 	}
 
-	return false
+	return err
 }
 
 func (s *Service) partsFilePath(infoHash string) string {

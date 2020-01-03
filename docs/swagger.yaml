@@ -24,6 +24,23 @@ definitions:
         example: ok
         type: string
     type: object
+  bittorrent.TorrentStatus:
+    properties:
+      paused:
+        type: boolean
+      peers:
+        type: integer
+      peers_total:
+        type: integer
+      progress:
+        type: integer
+      seeders:
+        type: integer
+      seeders_total:
+        type: integer
+      state:
+        type: integer
+    type: object
   settings.ProxySettings:
     properties:
       hostname:
@@ -136,32 +153,6 @@ paths:
           schema:
             $ref: '#/definitions/api.ErrorResponse'
       summary: Add Magnet
-  /remove/{infoHash}:
-    get:
-      description: remove torrent from service
-      operationId: remove-torrent
-      parameters:
-      - description: torrent info hash
-        in: path
-        name: infoHash
-        required: true
-        type: string
-      - description: delete files
-        in: query
-        name: delete
-        type: boolean
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/api.MessageResponse'
-        "404":
-          description: Not Found
-          schema:
-            $ref: '#/definitions/api.ErrorResponse'
-      summary: Remove Torrent
   /settings/get:
     get:
       description: get settings in JSON object
@@ -218,4 +209,52 @@ paths:
           schema:
             $ref: '#/definitions/api.StatusResponse'
       summary: Status
+  /torrents/{infoHash}/remove:
+    get:
+      description: remove torrent from service
+      operationId: remove-torrent
+      parameters:
+      - description: torrent info hash
+        in: path
+        name: infoHash
+        required: true
+        type: string
+      - description: delete files
+        in: query
+        name: delete
+        type: boolean
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.MessageResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      summary: Remove Torrent
+  /torrents/{infoHash}/status:
+    get:
+      description: get torrent status
+      operationId: torrent-status
+      parameters:
+      - description: torrent info hash
+        in: path
+        name: infoHash
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/bittorrent.TorrentStatus'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      summary: Get Torrent Status
 swagger: "2.0"

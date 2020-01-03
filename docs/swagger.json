@@ -55,45 +55,6 @@
                 }
             }
         },
-        "/remove/{infoHash}": {
-            "get": {
-                "description": "remove torrent from service",
-                "produces": [
-                    "application/json"
-                ],
-                "summary": "Remove Torrent",
-                "operationId": "remove-torrent",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "torrent info hash",
-                        "name": "infoHash",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "type": "boolean",
-                        "description": "delete files",
-                        "name": "delete",
-                        "in": "query"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/api.MessageResponse"
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/definitions/api.ErrorResponse"
-                        }
-                    }
-                }
-            }
-        },
         "/settings/get": {
             "get": {
                 "description": "get settings in JSON object",
@@ -178,6 +139,78 @@
                     }
                 }
             }
+        },
+        "/torrents/{infoHash}/remove": {
+            "get": {
+                "description": "remove torrent from service",
+                "produces": [
+                    "application/json"
+                ],
+                "summary": "Remove Torrent",
+                "operationId": "remove-torrent",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "torrent info hash",
+                        "name": "infoHash",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "delete files",
+                        "name": "delete",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/api.MessageResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/torrents/{infoHash}/status": {
+            "get": {
+                "description": "get torrent status",
+                "produces": [
+                    "application/json"
+                ],
+                "summary": "Get Torrent Status",
+                "operationId": "torrent-status",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "torrent info hash",
+                        "name": "infoHash",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/bittorrent.TorrentStatus"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    }
+                }
+            }
         }
     },
     "definitions": {
@@ -214,6 +247,32 @@
                 "status": {
                     "type": "string",
                     "example": "ok"
+                }
+            }
+        },
+        "bittorrent.TorrentStatus": {
+            "type": "object",
+            "properties": {
+                "paused": {
+                    "type": "boolean"
+                },
+                "peers": {
+                    "type": "integer"
+                },
+                "peers_total": {
+                    "type": "integer"
+                },
+                "progress": {
+                    "type": "integer"
+                },
+                "seeders": {
+                    "type": "integer"
+                },
+                "seeders_total": {
+                    "type": "integer"
+                },
+                "state": {
+                    "type": "integer"
                 }
             }
         },

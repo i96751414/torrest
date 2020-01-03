@@ -37,6 +37,16 @@ type Torrent struct {
 	spaceChecked bool
 }
 
+type TorrentStatus struct {
+	Progress     int      `json:"progress"`
+	Paused       bool     `json:"paused"`
+	State        LTStatus `json:"state"`
+	Seeders      int      `json:"seeders"`
+	SeedersTotal int      `json:"seeders_total"`
+	Peers        int      `json:"peers"`
+	PeersTotal   int      `json:"peers_total"`
+}
+
 type TorrentFileRaw struct {
 	Announce     string                 `bencode:"announce"`
 	AnnounceList [][]string             `bencode:"announce-list"`
@@ -93,6 +103,21 @@ func (t *Torrent) getState(file ...*File) LTStatus {
 
 func (t *Torrent) GetState() LTStatus {
 	return t.getState(t.Files()...)
+}
+
+func (t *Torrent) GetStatus() *TorrentStatus {
+	status := t.handle.Status()
+	seeders := status.GetNumSeeds()
+
+	return &TorrentStatus{
+		Progress:     int(100 * status.GetProgress()),
+		Paused:       t.isPaused,
+		State:        t.GetState(),
+		Seeders:      seeders,
+		SeedersTotal: status.GetNumComplete(),
+		Peers:        status.GetNumPeers() - seeders,
+		PeersTotal:   status.GetNumIncomplete(),
+	}
 }
 
 func (t *Torrent) TorrentInfo() libtorrent.TorrentInfo {
