@@ -8,6 +8,7 @@ import (
 	"math/rand"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strconv"
 	"strings"
 	"sync"
@@ -19,7 +20,10 @@ import (
 	"github.com/op/go-logging"
 )
 
-var log = logging.MustGetLogger("bittorrent")
+var (
+	log     = logging.MustGetLogger("bittorrent")
+	ipRegex = regexp.MustCompile(`\.\d+`)
+)
 
 const (
 	libtorrentAlertWaitTime = 1
@@ -154,9 +158,7 @@ func (s *Service) alertsConsumer() {
 					}
 
 				case libtorrent.ExternalIpAlertAlertType:
-					splitMessage := strings.Split(alertMessage, ":")
-					splitIP := strings.Split(splitMessage[len(splitMessage)-1], ".")
-					alertMessage = strings.Join(splitMessage[:len(splitMessage)-1], ":") + splitIP[0] + ".XX.XX.XX"
+					alertMessage = ipRegex.ReplaceAllString(alertMessage, ".XX")
 
 				case libtorrent.MetadataReceivedAlertAlertType:
 					metadataAlert := libtorrent.SwigcptrMetadataReceivedAlert(alertPtr)
