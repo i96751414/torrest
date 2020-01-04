@@ -45,7 +45,7 @@ type Service struct {
 	session      libtorrent.Session
 	config       *settings.Settings
 	settingsPack libtorrent.SettingsPack
-	torrents     map[string]*Torrent
+	torrents     []*Torrent
 	mu           *sync.RWMutex
 	closing      chan interface{}
 	UserAgent    string
@@ -101,7 +101,7 @@ func (s *Service) AddMagnet(magnet string) (infoHash string, err error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	if _, exists := s.torrents[infoHash]; exists {
+	if _, _, e := s.getTorrent(infoHash); e == nil {
 		err = errors.New("magnet was previously added")
 	} else {
 		torrentHandle := s.session.GetHandle().AddTorrent(torrentParams)
@@ -109,7 +109,7 @@ func (s *Service) AddMagnet(magnet string) (infoHash string, err error) {
 			log.Errorf("Error adding magnet %s", magnet)
 			err = errors.New("failed loading magnet")
 		} else {
-			s.torrents[infoHash] = NewTorrent(s, torrentHandle, infoHash)
+			s.torrents = append(s.torrents, NewTorrent(s, torrentHandle, infoHash))
 		}
 	}
 
@@ -206,7 +206,7 @@ func (s *Service) onStateChanged(stateAlert libtorrent.StateChangedAlert) {
 		torrentStatus := torrentHandle.Status(uint(libtorrent.TorrentHandleQueryName))
 		shaHash := torrentStatus.GetInfoHash().ToString()
 		infoHash := hex.EncodeToString([]byte(shaHash))
-		if torrent, err := s.getTorrent(infoHash); err == nil {
+		if _, torrent, err := s.getTorrent(infoHash); err == nil {
 			torrent.checkAvailableSpace()
 		}
 	}
@@ -248,7 +248,7 @@ func (s *Service) Reconfigure(config *settings.Settings) {
 }
 
 func (s *Service) configure() {
-	s.torrents = make(map[string]*Torrent)
+	s.torrents = nil
 	s.settingsPack = libtorrent.NewSettingsPack()
 
 	log.Info("Applying session settings...")
@@ -545,7 +545,7 @@ func (s *Service) AddTorrentFile(torrentFile string) (infoHash string, err error
 		}
 	}
 
-	if _, exists := s.torrents[infoHash]; exists {
+	if _, _, e := s.getTorrent(infoHash); e == nil {
 		err = errors.New("torrent was previously added")
 	} else {
 		torrentHandle := s.session.GetHandle().AddTorrent(torrentParams)
@@ -565,7 +565,7 @@ func (s *Service) AddTorrentFile(torrentFile string) (infoHash string, err error
 					log.Errorf("Failed copying torrent: %s", err)
 				}
 			}
-			s.torrents[infoHash] = NewTorrent(s, torrentHandle, infoHash)
+			s.torrents = append(s.torrents, NewTorrent(s, torrentHandle, infoHash))
 		}
 	}
 
@@ -582,7 +582,7 @@ func (s *Service) loadTorrentFiles() {
 	partsFiles, _ := filepath.Glob(filepath.Join(s.config.DownloadPath, "*.parts"))
 	for _, partsFile := range partsFiles {
 		infoHash := strings.TrimPrefix(strings.TrimSuffix(filepath.Base(partsFile), ".parts"), ".")
-		if _, exists := s.torrents[infoHash]; !exists {
+		if _, _, err := s.getTorrent(infoHash); err != nil {
 			deleteFile(partsFile)
 		}
 	}
@@ -684,24 +684,35 @@ func (s *Service) downloadProgress() {
 	}
 }
 
-func (s *Service) getTorrent(infoHash string) (*Torrent, error) {
-	if torrent, exists := s.torrents[infoHash]; exists {
-		return torrent, nil
+func (s *Service) Torrents() []*Torrent {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	torrents := make([]*Torrent, len(s.torrents))
+	copy(torrents, s.torrents)
+	return torrents
+}
+
+func (s *Service) getTorrent(infoHash string) (int, *Torrent, error) {
+	for i, t := range s.torrents {
+		if t.infoHash == infoHash {
+			return i, t, nil
+		}
 	}
-	return nil, fmt.Errorf("no such info hash '%s'", infoHash)
+	return -1, nil, fmt.Errorf("no such info hash '%s'", infoHash)
 }
 
 func (s *Service) GetTorrent(infoHash string) (*Torrent, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	return s.getTorrent(infoHash)
+	_, t, e := s.getTorrent(infoHash)
+	return t, e
 }
 
 func (s *Service) RemoveTorrent(infoHash string, removeFiles bool) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	torrent, err := s.getTorrent(infoHash)
+	index, torrent, err := s.getTorrent(infoHash)
 	if err == nil {
 		s.deletePartsFile(infoHash)
 		s.deleteFastResumeFile(infoHash)
@@ -712,7 +723,7 @@ func (s *Service) RemoveTorrent(infoHash string, removeFiles bool) error {
 			flags |= int(libtorrent.SessionHandleDeleteFiles)
 		}
 		s.session.GetHandle().RemoveTorrent(torrent.handle, flags)
-		delete(s.torrents, infoHash)
+		s.torrents = append(s.torrents[:index], s.torrents[index+1:]...)
 	}
 
 	return err

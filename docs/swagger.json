@@ -140,6 +140,35 @@
                 }
             }
         },
+        "/torrents": {
+            "get": {
+                "description": "list all torrents from service",
+                "produces": [
+                    "application/json"
+                ],
+                "summary": "List Torrents",
+                "operationId": "list-torrents",
+                "parameters": [
+                    {
+                        "type": "boolean",
+                        "description": "get torrents status",
+                        "name": "status",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/api.TorrentInfoResponse"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/torrents/{infoHash}/files": {
             "get": {
                 "description": "get a list of the torrent files and its details",
@@ -292,6 +321,18 @@
                 "status": {
                     "type": "string",
                     "example": "ok"
+                }
+            }
+        },
+        "api.TorrentInfoResponse": {
+            "type": "object",
+            "properties": {
+                "info_hash": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "object",
+                    "$ref": "#/definitions/bittorrent.TorrentStatus"
                 }
             }
         },

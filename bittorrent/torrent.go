@@ -87,6 +87,10 @@ func NewTorrent(service *Service, handle libtorrent.TorrentHandle, infoHash stri
 	}
 }
 
+func (t *Torrent) InfoHash() string {
+	return t.infoHash
+}
+
 func (t *Torrent) Pause() {
 	t.handle.AutoManaged(false)
 	t.handle.Pause(1)

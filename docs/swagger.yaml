@@ -28,6 +28,14 @@ definitions:
         example: ok
         type: string
     type: object
+  api.TorrentInfoResponse:
+    properties:
+      info_hash:
+        type: string
+      status:
+        $ref: '#/definitions/bittorrent.TorrentStatus'
+        type: object
+    type: object
   bittorrent.FileInfo:
     properties:
       id:
@@ -242,6 +250,25 @@ paths:
           schema:
             $ref: '#/definitions/api.StatusResponse'
       summary: Status
+  /torrents:
+    get:
+      description: list all torrents from service
+      operationId: list-torrents
+      parameters:
+      - description: get torrents status
+        in: query
+        name: status
+        type: boolean
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/api.TorrentInfoResponse'
+            type: array
+      summary: List Torrents
   /torrents/{infoHash}/files:
     get:
       description: get a list of the torrent files and its details
