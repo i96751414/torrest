@@ -14,8 +14,8 @@ func DiskUsage(path string) (*DiskStatus, error) {
 		return nil, err
 	}
 	status := &DiskStatus{
-		All:  int64(fs.Blocks) * int64(fs.Bsize),
-		Free: int64(fs.Bfree) * int64(fs.Bsize),
+		All:  int64(fs.Blocks) * fs.Bsize,
+		Free: int64(fs.Bfree) * fs.Bsize,
 	}
 	status.Used = status.All - status.Free
 	return status, nil
