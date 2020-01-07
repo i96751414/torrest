@@ -2,7 +2,6 @@ package bittorrent
 
 import (
 	"bytes"
-	"errors"
 	"sync"
 
 	"github.com/dustin/go-humanize"
@@ -171,7 +170,7 @@ func (t *Torrent) Files() []*File {
 func (t *Torrent) GetFile(id int) (*File, error) {
 	files := t.Files()
 	if id < 0 || id >= len(files) {
-		return nil, errors.New("no such file id")
+		return nil, InvalidFileIdError
 	}
 	return files[id], nil
 }

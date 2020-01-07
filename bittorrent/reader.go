@@ -1,7 +1,6 @@
 package bittorrent
 
 import (
-	"errors"
 	"io"
 	"time"
 )
@@ -40,10 +39,10 @@ func (r *reader) waitForPiece(piece int) error {
 		select {
 		case <-r.torrent.closing:
 			log.Warningf("Unable to wait for piece %d as torrent was closed", piece)
-			return errors.New("torrent was closed")
+			return TorrentClosedError
 		case <-r.closing:
 			log.Warningf("Unable to wait for piece %d as file was closed", piece)
-			return errors.New("file was closed")
+			return FileClosedError
 		case <-pieceRefreshTicker.C:
 			continue
 		}
@@ -89,7 +88,7 @@ func (r *reader) Seek(off int64, whence int) (ret int64, err error) {
 	case io.SeekEnd:
 		seekingOffset = r.length - seekingOffset
 	default:
-		return 0, errors.New("invalid whence")
+		return 0, InvalidWhenceError
 	}
 
 	piece := r.pieceFromOffset(seekingOffset)

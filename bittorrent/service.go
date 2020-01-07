@@ -75,47 +75,6 @@ func NewService(config *settings.Settings) *Service {
 	return s
 }
 
-func (s *Service) AddMagnet(magnet string) (infoHash string, err error) {
-	torrentParams := libtorrent.NewAddTorrentParams()
-	defer libtorrent.DeleteAddTorrentParams(torrentParams)
-	errorCode := libtorrent.NewErrorCode()
-	defer libtorrent.DeleteErrorCode(errorCode)
-
-	libtorrent.ParseMagnetUri(magnet, torrentParams, errorCode)
-	if errorCode.Failed() {
-		return "", errors.New(errorCode.Message().(string))
-	}
-
-	torrentParams.SetSavePath(s.config.DownloadPath)
-	// Make sure we do not download anything yet
-	filesPriorities := libtorrent.NewStdVectorChar()
-	defer libtorrent.DeleteStdVectorChar(filesPriorities)
-	for i := maxFilesPerTorrent; i > 0; i-- {
-		filesPriorities.Add(0)
-	}
-	torrentParams.SetFilePriorities(filesPriorities)
-
-	shaHash := torrentParams.GetInfoHash().ToString()
-	infoHash = hex.EncodeToString([]byte(shaHash))
-
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	if _, _, e := s.getTorrent(infoHash); e == nil {
-		err = errors.New("magnet was previously added")
-	} else {
-		torrentHandle := s.session.GetHandle().AddTorrent(torrentParams)
-		if torrentHandle == nil || !torrentHandle.IsValid() {
-			log.Errorf("Error adding magnet %s", magnet)
-			err = errors.New("failed loading magnet")
-		} else {
-			s.torrents = append(s.torrents, NewTorrent(s, torrentHandle, infoHash))
-		}
-	}
-
-	return
-}
-
 func (s *Service) alertsConsumer() {
 	ltTimer := libtorrent.Seconds(libtorrentAlertWaitTime)
 	log.Info("Consuming alerts...")
@@ -506,18 +465,7 @@ func (s *Service) stopServices() {
 	s.session.GetHandle().ApplySettings(s.settingsPack)
 }
 
-func (s *Service) AddTorrentFile(torrentFile string) (infoHash string, err error) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	log.Infof("Loading torrent file %s", torrentFile)
-
-	torrentParams := libtorrent.NewAddTorrentParams()
-	defer libtorrent.DeleteAddTorrentParams(torrentParams)
-	info := libtorrent.NewTorrentInfo(torrentFile)
-	defer libtorrent.DeleteTorrentInfo(info)
-
-	torrentParams.SetTorrentInfo(info)
+func (s *Service) addTorrentWithParams(torrentParams libtorrent.AddTorrentParams) (infoHash string, err error) {
 	torrentParams.SetSavePath(s.config.DownloadPath)
 	// Make sure we do not download anything yet
 	filesPriorities := libtorrent.NewStdVectorChar()
@@ -527,7 +475,7 @@ func (s *Service) AddTorrentFile(torrentFile string) (infoHash string, err error
 	}
 	torrentParams.SetFilePriorities(filesPriorities)
 
-	shaHash := info.InfoHash().ToString()
+	shaHash := torrentParams.GetInfoHash().ToString()
 	infoHash = hex.EncodeToString([]byte(shaHash))
 	fastResumeFile := s.fastResumeFilePath(infoHash)
 
@@ -546,29 +494,60 @@ func (s *Service) AddTorrentFile(torrentFile string) (infoHash string, err error
 	}
 
 	if _, _, e := s.getTorrent(infoHash); e == nil {
-		err = errors.New("torrent was previously added")
+		err = DuplicateTorrentError
 	} else {
 		torrentHandle := s.session.GetHandle().AddTorrent(torrentParams)
 		if torrentHandle == nil || !torrentHandle.IsValid() {
-			log.Errorf("Error adding torrent file for %s", torrentFile)
-			err = errors.New("failed loading torrent")
-			s.deletePartsFile(infoHash)
-			s.deleteFastResumeFile(infoHash)
-			s.deleteTorrentFile(infoHash)
+			log.Errorf("Error adding torrent '%s'", infoHash)
+			err = LoadTorrentError
 		} else {
-			torrentDst := s.torrentPath(infoHash)
-			fi1, e1 := os.Stat(torrentFile)
-			fi2, e2 := os.Stat(torrentDst)
-			if e1 != nil || e2 != nil || !os.SameFile(fi1, fi2) {
-				log.Infof("Copying torrent %s", infoHash)
-				if err := copyFileContents(torrentFile, torrentDst); err != nil {
-					log.Errorf("Failed copying torrent: %s", err)
-				}
-			}
 			s.torrents = append(s.torrents, NewTorrent(s, torrentHandle, infoHash))
 		}
 	}
+	return
+}
 
+func (s *Service) AddMagnet(magnet string) (string, error) {
+	torrentParams := libtorrent.NewAddTorrentParams()
+	defer libtorrent.DeleteAddTorrentParams(torrentParams)
+	errorCode := libtorrent.NewErrorCode()
+	defer libtorrent.DeleteErrorCode(errorCode)
+
+	libtorrent.ParseMagnetUri(magnet, torrentParams, errorCode)
+	if errorCode.Failed() {
+		return "", errors.New(errorCode.Message().(string))
+	}
+
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.addTorrentWithParams(torrentParams)
+}
+
+func (s *Service) AddTorrentFile(torrentFile string) (infoHash string, err error) {
+	torrentParams := libtorrent.NewAddTorrentParams()
+	defer libtorrent.DeleteAddTorrentParams(torrentParams)
+	info := libtorrent.NewTorrentInfo(torrentFile)
+	defer libtorrent.DeleteTorrentInfo(info)
+	torrentParams.SetTorrentInfo(info)
+
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	infoHash, err = s.addTorrentWithParams(torrentParams)
+	if err == nil {
+		torrentDst := s.torrentPath(infoHash)
+		fi1, e1 := os.Stat(torrentFile)
+		fi2, e2 := os.Stat(torrentDst)
+		if e1 != nil || e2 != nil || !os.SameFile(fi1, fi2) {
+			log.Infof("Copying torrent %s", infoHash)
+			if err := copyFileContents(torrentFile, torrentDst); err != nil {
+				log.Errorf("Failed copying torrent: %s", err)
+			}
+		}
+	} else if err == LoadTorrentError {
+		s.deletePartsFile(infoHash)
+		s.deleteFastResumeFile(infoHash)
+		s.deleteTorrentFile(infoHash)
+	}
 	return
 }
 
@@ -698,7 +677,7 @@ func (s *Service) getTorrent(infoHash string) (int, *Torrent, error) {
 			return i, t, nil
 		}
 	}
-	return -1, nil, fmt.Errorf("no such info hash '%s'", infoHash)
+	return -1, nil, InvalidInfoHashError
 }
 
 func (s *Service) GetTorrent(infoHash string) (*Torrent, error) {
