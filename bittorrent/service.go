@@ -50,7 +50,13 @@ type Service struct {
 	UserAgent    string
 	downloadRate int64
 	uploadRate   int64
-	progress     int
+	progress     float64
+}
+
+type ServiceStatus struct {
+	Progress     float64 `json:"progress"`
+	DownloadRate int64   `json:"download_rate"`
+	UploadRate   int64   `json:"upload_rate"`
 }
 
 // NewService creates a service given the provided configs
@@ -613,7 +619,8 @@ func (s *Service) downloadProgress() {
 
 			var totalDownloadRate int64
 			var totalUploadRate int64
-			var totalProgress int
+			var totalProgress float64
+			var totalSize int64
 
 			hasFilesBuffering := false
 			bufferStateChanged := false
@@ -643,10 +650,12 @@ func (s *Service) downloadProgress() {
 
 				totalDownloadRate += int64(torrentStatus.GetDownloadRate())
 				totalUploadRate += int64(torrentStatus.GetUploadRate())
-				progress := int(float64(torrentStatus.GetProgress()) * 100)
+				progress := float64(torrentStatus.GetProgress())
 
 				if progress < 100 {
-					totalProgress += progress
+					size := torrentStatus.GetTotalWanted()
+					totalProgress += progress * float64(size)
+					totalSize += size
 					continue
 				}
 
@@ -690,9 +699,24 @@ func (s *Service) downloadProgress() {
 
 			s.downloadRate = totalDownloadRate
 			s.uploadRate = totalUploadRate
-			s.progress = totalProgress
+			if totalSize > 0 {
+				s.progress = 100 * totalProgress / float64(totalSize)
+			} else {
+				s.progress = 100
+			}
+
 			s.mu.Unlock()
 		}
+	}
+}
+
+func (s *Service) GetStatus() *ServiceStatus {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return &ServiceStatus{
+		Progress:     s.progress,
+		DownloadRate: s.downloadRate,
+		UploadRate:   s.uploadRate,
 	}
 }
 
