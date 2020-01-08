@@ -54,8 +54,12 @@ func (r *reader) pieceFromOffset(offset int64) int {
 	return int((r.offset + offset) / r.pieceLength)
 }
 
-func (r *reader) Read(b []byte) (n int, err error) {
-	currentOffset, err := r.storage.Seek(0, io.SeekCurrent)
+func (r *reader) pos() (int64, error) {
+	return r.storage.Seek(0, io.SeekCurrent)
+}
+
+func (r *reader) Read(b []byte) (int, error) {
+	currentOffset, err := r.pos()
 	if err != nil {
 		return 0, err
 	}
@@ -73,22 +77,22 @@ func (r *reader) Close() error {
 	return r.storage.Close()
 }
 
-func (r *reader) Seek(off int64, whence int) (ret int64, err error) {
+func (r *reader) Seek(off int64, whence int) (int64, error) {
 	seekingOffset := off
 
 	switch whence {
 	case io.SeekStart:
 		// do nothing
 	case io.SeekCurrent:
-		if currentOffset, err := r.storage.Seek(0, io.SeekCurrent); err != nil {
-			return currentOffset, err
-		} else {
+		if currentOffset, err := r.pos(); err == nil {
 			seekingOffset += currentOffset
+		} else {
+			return currentOffset, err
 		}
 	case io.SeekEnd:
 		seekingOffset = r.length - seekingOffset
 	default:
-		return 0, InvalidWhenceError
+		return -1, InvalidWhenceError
 	}
 
 	piece := r.pieceFromOffset(seekingOffset)
