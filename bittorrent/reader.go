@@ -94,12 +94,13 @@ func (r *reader) Seek(off int64, whence int) (ret int64, err error) {
 	piece := r.pieceFromOffset(seekingOffset)
 	if !r.torrent.handle.HavePiece(piece) {
 		log.Infof("We don't have piece %d, setting piece priorities", piece)
-		p := 0
+		p := r.pieceFromOffset(0)
 		for ; p < piece; p++ {
 			r.torrent.handle.PiecePriority(p, 0)
 		}
 		for ; p <= piece+r.priorityPieces; p++ {
 			r.torrent.handle.PiecePriority(p, 7)
+			r.torrent.handle.SetPieceDeadline(p, 0)
 		}
 		for ; p <= r.pieceFromOffset(r.length); p++ {
 			r.torrent.handle.PiecePriority(p, 6)
