@@ -180,6 +180,8 @@ func (s *Service) saveResumeDataLoop() {
 
 	for {
 		select {
+		case <-s.closing:
+			return
 		case <-saveResumeWait.C:
 			s.mu.Lock()
 			for _, torrent := range s.torrents {
@@ -613,6 +615,8 @@ func (s *Service) downloadProgress() {
 
 	for {
 		select {
+		case <-s.closing:
+			return
 		case <-progressTicker.C:
 			if s.session.GetHandle().IsPaused() {
 				continue
