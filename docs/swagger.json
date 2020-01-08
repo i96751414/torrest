@@ -55,6 +55,48 @@
                 }
             }
         },
+        "/add/torrent": {
+            "post": {
+                "description": "add torrent file to service",
+                "consumes": [
+                    "multipart/form-data"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "summary": "Add Torrent File",
+                "operationId": "add-torrent",
+                "parameters": [
+                    {
+                        "type": "file",
+                        "description": "torrent file",
+                        "name": "torrent",
+                        "in": "formData",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/api.NewTorrentResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/settings/get": {
             "get": {
                 "description": "get settings in JSON object",

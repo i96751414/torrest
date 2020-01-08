@@ -194,6 +194,34 @@ paths:
           schema:
             $ref: '#/definitions/api.ErrorResponse'
       summary: Add Magnet
+  /add/torrent:
+    post:
+      consumes:
+      - multipart/form-data
+      description: add torrent file to service
+      operationId: add-torrent
+      parameters:
+      - description: torrent file
+        in: formData
+        name: torrent
+        required: true
+        type: file
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.NewTorrentResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      summary: Add Torrent File
   /settings/get:
     get:
       description: get settings in JSON object
