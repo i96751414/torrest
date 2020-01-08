@@ -47,6 +47,21 @@ func (f *File) Info() *FileInfo {
 		Name:   f.name,
 	}
 }
+func (f *File) Id() int {
+	return f.index
+}
+
+func (f *File) Length() int64 {
+	return f.length
+}
+
+func (f *File) Path() string {
+	return f.path
+}
+
+func (f *File) Name() string {
+	return f.name
+}
 
 func (f *File) NewReader() (Reader, error) {
 	file, err := os.Open(f.GetDownloadPath())

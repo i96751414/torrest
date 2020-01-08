@@ -4,10 +4,17 @@ import (
 	"fmt"
 	"mime/multipart"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/i96751414/torrest/bittorrent"
+	"github.com/i96751414/torrest/settings"
+)
+
+const (
+	startBufferPercent = 0.005
+	endBufferSize      = 10 * 1024 * 1024 // 10MB
 )
 
 type NewTorrentResponse struct {
@@ -168,6 +175,50 @@ func torrentFiles(service *bittorrent.Service) gin.HandlerFunc {
 			}
 		} else {
 			ctx.JSON(http.StatusNotFound, NewErrorResponse(err))
+		}
+	}
+}
+
+// @Summary Download Torrent File
+// @Description download file from torrent give its id
+// @ID download-file
+// @Produce json
+// @Param infoHash path string true "torrent info hash"
+// @Param file path integer true "file id"
+// @Param buffer query boolean false "buffer file"
+// @Success 200 {object} MessageResponse
+// @Failure 404 {object} ErrorResponse
+// @Failure 400 {object} ErrorResponse
+// @Failure 500 {object} ErrorResponse
+// @Router /torrents/{infoHash}/files/{file}/download [get]
+func downloadFile(config *settings.Settings, service *bittorrent.Service) gin.HandlerFunc {
+	return func(ctx *gin.Context) {
+		fileString := ctx.Param("file")
+		if fileId, err := strconv.Atoi(fileString); err == nil {
+			infoHash := ctx.Param("infoHash")
+			if torrent, err := service.GetTorrent(infoHash); err == nil {
+				if torrent.HasMetadata() {
+					if file, err := torrent.GetFile(fileId); err == nil {
+						file.SetPriority(4)
+						if ctx.DefaultQuery("buffer", "false") == "true" {
+							bufferSize := int64(float64(file.Length()) * startBufferPercent)
+							if bufferSize < config.BufferSize {
+								bufferSize = config.BufferSize
+							}
+							file.Buffer(bufferSize, endBufferSize)
+						}
+						ctx.JSON(http.StatusOK, MessageResponse{Message: fmt.Sprintf("file '%s' is downloading", fileString)})
+					} else {
+						ctx.JSON(http.StatusBadRequest, NewErrorResponse(err))
+					}
+				} else {
+					ctx.JSON(http.StatusInternalServerError, ErrorResponse{Error: "no metadata"})
+				}
+			} else {
+				ctx.JSON(http.StatusNotFound, NewErrorResponse(err))
+			}
+		} else {
+			ctx.JSON(http.StatusBadRequest, ErrorResponse{Error: "'file' must be integer"})
 		}
 	}
 }

@@ -79,6 +79,7 @@ type Settings struct {
 	SeedTimeLimit       int              `json:"seed_time_limit" example:"0"`
 	EncryptionPolicy    EncryptionPolicy `json:"encryption_policy" example:"0"`
 	Proxy               *ProxySettings   `json:"proxy"`
+	BufferSize          int64            `json:"buffer_size" example:"20971520"`
 }
 
 func DefaultSettings() *Settings {
@@ -104,6 +105,7 @@ func DefaultSettings() *Settings {
 		SeedTimeLimit:       0,
 		EncryptionPolicy:    EncryptionEnabledPolicy,
 		Proxy:               nil,
+		BufferSize:          20 * 1024 * 1024,
 	}
 }
 

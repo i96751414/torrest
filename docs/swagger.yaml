@@ -97,6 +97,9 @@ definitions:
     type: object
   settings.Settings:
     properties:
+      buffer_size:
+        example: 20971520
+        type: integer
       connections_limit:
         example: 0
         type: integer
@@ -323,6 +326,45 @@ paths:
           schema:
             $ref: '#/definitions/api.ErrorResponse'
       summary: Get Torrent Files
+  /torrents/{infoHash}/files/{file}/download:
+    get:
+      description: download file from torrent give its id
+      operationId: download-file
+      parameters:
+      - description: torrent info hash
+        in: path
+        name: infoHash
+        required: true
+        type: string
+      - description: file id
+        in: path
+        name: file
+        required: true
+        type: integer
+      - description: buffer file
+        in: query
+        name: buffer
+        type: boolean
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.MessageResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      summary: Download Torrent File
   /torrents/{infoHash}/remove:
     get:
       description: remove torrent from service

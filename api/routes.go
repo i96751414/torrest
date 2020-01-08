@@ -1,10 +1,10 @@
 package api
 
 import (
-	"github.com/i96751414/torrest/bittorrent"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/i96751414/torrest/bittorrent"
 	_ "github.com/i96751414/torrest/docs"
 	"github.com/i96751414/torrest/settings"
 	"github.com/op/go-logging"
@@ -68,6 +68,7 @@ func Routes(config *settings.Settings, service *bittorrent.Service) *gin.Engine 
 	torrentsRoutes.GET("/:infoHash/remove", removeTorrent(service))
 	torrentsRoutes.GET("/:infoHash/status", torrentStatus(service))
 	torrentsRoutes.GET("/:infoHash/files", torrentFiles(service))
+	torrentsRoutes.GET("/:infoHash/files/:file/download", downloadFile(config, service))
 
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler,
 		ginSwagger.URL("/swagger/doc.json")))
