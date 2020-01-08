@@ -19,10 +19,7 @@ import (
 	"time"
 )
 
-var (
-	log     = logging.MustGetLogger("bittorrent")
-	ipRegex = regexp.MustCompile(`\.\d+`)
-)
+var log = logging.MustGetLogger("bittorrent")
 
 const (
 	libtorrentAlertWaitTime = 1
@@ -82,6 +79,7 @@ func NewService(config *settings.Settings) *Service {
 
 func (s *Service) alertsConsumer() {
 	ltTimer := libtorrent.Seconds(libtorrentAlertWaitTime)
+	ipRegex := regexp.MustCompile(`\.\d+`)
 	log.Info("Consuming alerts...")
 	for {
 		select {
@@ -103,47 +101,16 @@ func (s *Service) alertsConsumer() {
 
 				switch alertType {
 				case libtorrent.SaveResumeDataAlertAlertType:
-					saveResumeData := libtorrent.SwigcptrSaveResumeDataAlert(alertPtr)
-					torrentHandle := saveResumeData.GetHandle()
-					torrentStatus := torrentHandle.Status(uint(libtorrent.TorrentHandleQuerySavePath) |
-						uint(libtorrent.TorrentHandleQueryName))
-					name := torrentStatus.GetName()
-					infoHash := hex.EncodeToString([]byte(torrentStatus.GetInfoHash().ToString()))
-
-					bEncoded := []byte(libtorrent.Bencode(saveResumeData.ResumeData()))
-					if _, err := DecodeTorrentData(bEncoded); err != nil {
-						log.Warningf("Resume data corrupted for %s, %d bytes received and failed to decode with: %s, skipping...", name, len(bEncoded), err)
-					} else {
-						path := filepath.Join(s.config.TorrentsPath, fmt.Sprintf("%s.fastresume", infoHash))
-						if err := ioutil.WriteFile(path, bEncoded, 0644); err != nil {
-							log.Errorf("Failed saving '%s.fastresume': %s", infoHash, err)
-						}
-					}
+					s.onSaveResumeData(libtorrent.SwigcptrSaveResumeDataAlert(alertPtr))
 
 				case libtorrent.ExternalIpAlertAlertType:
 					alertMessage = ipRegex.ReplaceAllString(alertMessage, ".XX")
 
 				case libtorrent.MetadataReceivedAlertAlertType:
-					metadataAlert := libtorrent.SwigcptrMetadataReceivedAlert(alertPtr)
-					torrentHandle := metadataAlert.GetHandle()
-					torrentStatus := torrentHandle.Status(uint(libtorrent.TorrentHandleQueryName))
-					infoHash := hex.EncodeToString([]byte(torrentStatus.GetInfoHash().ToString()))
-					torrentFileName := filepath.Join(s.config.TorrentsPath, fmt.Sprintf("%s.torrent", infoHash))
-
-					// Save .torrent
-					log.Infof("Saving %s...", torrentFileName)
-					torrentInfo := torrentHandle.TorrentFile()
-					torrentFile := libtorrent.NewCreateTorrent(torrentInfo)
-					torrentContent := torrentFile.Generate()
-					bEncodedTorrent := []byte(libtorrent.Bencode(torrentContent))
-					if err := ioutil.WriteFile(torrentFileName, bEncodedTorrent, 0644); err != nil {
-						log.Errorf("Failed saving '%s.torrent': %s", infoHash, err)
-					}
-					libtorrent.DeleteCreateTorrent(torrentFile)
+					s.onMetadataReceived(libtorrent.SwigcptrMetadataReceivedAlert(alertPtr))
 
 				case libtorrent.StateChangedAlertAlertType:
-					stateAlert := libtorrent.SwigcptrStateChangedAlert(alertPtr)
-					s.onStateChanged(stateAlert)
+					s.onStateChanged(libtorrent.SwigcptrStateChangedAlert(alertPtr))
 				}
 
 				// log alerts
@@ -161,10 +128,44 @@ func (s *Service) alertsConsumer() {
 	}
 }
 
-func (s *Service) onStateChanged(stateAlert libtorrent.StateChangedAlert) {
-	switch stateAlert.GetState() {
+func (s *Service) onSaveResumeData(alert libtorrent.SaveResumeDataAlert) {
+	torrentHandle := alert.GetHandle()
+	torrentStatus := torrentHandle.Status(uint(libtorrent.TorrentHandleQuerySavePath) |
+		uint(libtorrent.TorrentHandleQueryName))
+	infoHash := hex.EncodeToString([]byte(torrentStatus.GetInfoHash().ToString()))
+
+	bEncoded := []byte(libtorrent.Bencode(alert.ResumeData()))
+	if _, err := DecodeTorrentData(bEncoded); err == nil {
+		if err := ioutil.WriteFile(s.fastResumeFilePath(infoHash), bEncoded, 0644); err != nil {
+			log.Errorf("Failed saving '%s.fastresume': %s", infoHash, err)
+		}
+	} else {
+		log.Warningf("Resume data corrupted for %s, %d bytes received and failed to decode with: %s, skipping...",
+			torrentStatus.GetName(), len(bEncoded), err)
+	}
+}
+
+func (s *Service) onMetadataReceived(alert libtorrent.MetadataReceivedAlert) {
+	torrentHandle := alert.GetHandle()
+	torrentStatus := torrentHandle.Status(uint(libtorrent.TorrentHandleQueryName))
+	infoHash := hex.EncodeToString([]byte(torrentStatus.GetInfoHash().ToString()))
+
+	// Save .torrent
+	log.Infof("Saving %s.torrent", infoHash)
+	torrentInfo := torrentHandle.TorrentFile()
+	torrentFile := libtorrent.NewCreateTorrent(torrentInfo)
+	torrentContent := torrentFile.Generate()
+	bEncodedTorrent := []byte(libtorrent.Bencode(torrentContent))
+	if err := ioutil.WriteFile(s.torrentPath(infoHash), bEncodedTorrent, 0644); err != nil {
+		log.Errorf("Failed saving '%s.torrent': %s", infoHash, err)
+	}
+	libtorrent.DeleteCreateTorrent(torrentFile)
+}
+
+func (s *Service) onStateChanged(alert libtorrent.StateChangedAlert) {
+	switch alert.GetState() {
 	case libtorrent.TorrentStatusDownloading:
-		torrentHandle := stateAlert.GetHandle()
+		torrentHandle := alert.GetHandle()
 		torrentStatus := torrentHandle.Status(uint(libtorrent.TorrentHandleQueryName))
 		infoHash := hex.EncodeToString([]byte(torrentStatus.GetInfoHash().ToString()))
 		if _, torrent, err := s.getTorrent(infoHash); err == nil {
