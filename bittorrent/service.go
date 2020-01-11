@@ -124,6 +124,7 @@ func (s *Service) alertsConsumer() {
 					log.Noticef("%s: %s", what, alertMessage)
 				}
 			}
+			libtorrent.DeleteStdVectorAlerts(alerts)
 		}
 	}
 }
