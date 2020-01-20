@@ -2,6 +2,39 @@ CC = cc
 CXX = c++
 STRIP = strip
 
+PROJECT = i96751414
+NAME = torrest
+GO_PKG = github.com/i96751414/torrest
+GO = go
+GIT = git
+DOCKER = docker
+DOCKER_IMAGE = libtorrent-go
+UPX = upx
+GIT_VERSION = $(shell $(GIT) describe --tags)
+CGO_ENABLED = 1
+BUILD_DIR = build
+LIBTORRENT_GO = github.com/i96751414/libtorrent-go
+#GO_LDFLAGS += -w -X $(GO_PKG)/util.Version="$(GIT_VERSION)"
+PLATFORMS = \
+	android-arm \
+	android-x64 \
+	android-x86 \
+	darwin-x64 \
+	linux-arm \
+	linux-armv7 \
+	linux-arm64 \
+	linux-x64 \
+	linux-x86 \
+	windows-x64 \
+	windows-x86
+
+ifeq ($(GOPATH),)
+	GOPATH = $(shell go env GOPATH)
+endif
+ifeq ($(USERGRP),)
+	USERGRP = "$(shell id -u):$(shell id -g)"
+endif
+
 include platform_host.mk
 
 ifneq ($(CROSS_TRIPLE),)
@@ -22,7 +55,7 @@ else ifeq ($(TARGET_ARCH), arm)
 else ifeq ($(TARGET_ARCH), armv7)
 	GOARCH = arm
 	GOARM = 7
-	PKGDIR = -pkgdir /go/pkg/linux_armv7
+	PKGDIR = -pkgdir $(GOPATH)/pkg/linux_armv7
 else ifeq ($(TARGET_ARCH), arm64)
 	GOARCH = arm64
 	GOARM =
@@ -56,38 +89,12 @@ else ifeq ($(TARGET_OS), android)
 	GO_LDFLAGS = -linkmode=external -extldflags=-pie -extld=$(CC)
 endif
 
-PROJECT = i96751414
-NAME = torrest
-GO_PKG = github.com/i96751414/torrest
-GO = go
-GIT = git
-DOCKER = docker
-DOCKER_IMAGE = libtorrent-go
-UPX = upx
-GIT_VERSION = $(shell $(GIT) describe --tags)
-CGO_ENABLED = 1
-OUTPUT_NAME = $(NAME)$(EXT)
-BUILD_PATH = build/$(TARGET_OS)_$(TARGET_ARCH)
-LIBTORRENT_GO = github.com/i96751414/libtorrent-go
-LIBTORRENT_GO_HOME = "$(GOPATH)/src/$(LIBTORRENT_GO)"
-GO_BUILD_TAGS =
-#GO_LDFLAGS += -w -X $(GO_PKG)/util.Version="$(GIT_VERSION)"
-PLATFORMS = \
-	android-arm \
-	android-x64 \
-	android-x86 \
-	darwin-x64 \
-	linux-arm \
-	linux-armv7 \
-	linux-arm64 \
-	linux-x64 \
-	linux-x86 \
-	windows-x64 \
-	windows-x86
+DOCKER_GOPATH = "/go"
+DOCKER_WORKDIR = "$(DOCKER_GOPATH)/src/$(GO_PKG)"
 
-ifeq ($(GOPATH),)
-	GOPATH = $(shell go env GOPATH)
-endif
+OUTPUT_NAME = $(NAME)$(EXT)
+BUILD_PATH = $(BUILD_DIR)/$(TARGET_OS)_$(TARGET_ARCH)
+LIBTORRENT_GO_HOME = "$(GOPATH)/src/$(LIBTORRENT_GO)"
 
 .PHONY: $(PLATFORMS)
 
@@ -117,9 +124,10 @@ $(BUILD_PATH)/$(OUTPUT_NAME): $(BUILD_PATH) force
 		-gcflags '$(GO_GCFLAGS)' \
 		-ldflags '$(GO_LDFLAGS)' \
 		-o '$(BUILD_PATH)/$(OUTPUT_NAME)' \
-		$(PKGDIR) #&& \
-	#set -x && \
-	#$(GO) vet -unsafeptr=false .
+		$(PKGDIR) && \
+	set -x && \
+	$(GO) vet -unsafeptr=false .
+	chown -R $(USERGRP) $(BUILD_DIR)
 
 vendor_darwin vendor_linux:
 
@@ -143,13 +151,25 @@ clean:
 	rm -rf $(BUILD_PATH)
 
 distclean:
-	rm -rf build
+	rm -rf $(BUILD_DIR)
 
 build: force
-	$(DOCKER) run --rm -v "$(GOPATH)":/go -e GOPATH=/go -v "$(shell pwd)":/go/src/$(GO_PKG) -w /go/src/$(GO_PKG) $(DOCKER_IMAGE):$(TARGET_OS)-$(TARGET_ARCH) make dist TARGET_OS=$(TARGET_OS) TARGET_ARCH=$(TARGET_ARCH) GIT_VERSION=$(GIT_VERSION)
+	$(DOCKER) run --rm \
+	-e GOPATH=$(DOCKER_GOPATH) \
+	-e USERGRP=$(USERGRP) \
+	-v "$(GOPATH)":$(DOCKER_GOPATH) \
+	-v "$(shell pwd)":$(DOCKER_WORKDIR) \
+	-w $(DOCKER_WORKDIR) \
+	$(DOCKER_IMAGE):$(TARGET_OS)-$(TARGET_ARCH) \
+	make dist TARGET_OS=$(TARGET_OS) TARGET_ARCH=$(TARGET_ARCH) GIT_VERSION=$(GIT_VERSION)
 
 docker: force
-	$(DOCKER) run --rm -v "$(GOPATH)":/go -e GOPATH=/go -v "$(shell pwd)":/go/src/$(GO_PKG) -w /go/src/$(GO_PKG) $(DOCKER_IMAGE):$(TARGET_OS)-$(TARGET_ARCH)
+	$(DOCKER) run --rm \
+	-e GOPATH=$(DOCKER_GOPATH) \
+	-v "$(GOPATH)":$(DOCKER_GOPATH) \
+	-v "$(shell pwd)":$(DOCKER_WORKDIR) \
+	-w $(DOCKER_WORKDIR) \
+	$(DOCKER_IMAGE):$(TARGET_OS)-$(TARGET_ARCH)
 
 strip: force
 	@find $(BUILD_PATH) -type f ! -name "*.exe" -exec $(STRIP) {} \;
