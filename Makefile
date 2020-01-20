@@ -31,9 +31,6 @@ PLATFORMS = \
 ifeq ($(GOPATH),)
 	GOPATH = $(shell go env GOPATH)
 endif
-ifeq ($(USERGRP),)
-	USERGRP = "$(shell id -u):$(shell id -g)"
-endif
 
 include platform_host.mk
 
@@ -91,10 +88,13 @@ endif
 
 DOCKER_GOPATH = "/go"
 DOCKER_WORKDIR = "$(DOCKER_GOPATH)/src/$(GO_PKG)"
+DOCKER_GOCACHE = "/tmp/.cache"
 
 OUTPUT_NAME = $(NAME)$(EXT)
 BUILD_PATH = $(BUILD_DIR)/$(TARGET_OS)_$(TARGET_ARCH)
 LIBTORRENT_GO_HOME = "$(GOPATH)/src/$(LIBTORRENT_GO)"
+
+USERGRP = "$(shell id -u):$(shell id -g)"
 
 .PHONY: $(PLATFORMS)
 
@@ -127,7 +127,6 @@ $(BUILD_PATH)/$(OUTPUT_NAME): $(BUILD_PATH) force
 		$(PKGDIR) && \
 	set -x && \
 	$(GO) vet -unsafeptr=false .
-	chown -R $(USERGRP) $(BUILD_DIR)
 
 vendor_darwin vendor_linux:
 
@@ -155,8 +154,9 @@ distclean:
 
 build: force
 	$(DOCKER) run --rm \
+	-u $(USERGRP) \
 	-e GOPATH=$(DOCKER_GOPATH) \
-	-e USERGRP=$(USERGRP) \
+	-e GOCACHE=$(DOCKER_GOCACHE) \
 	-v "$(GOPATH)":$(DOCKER_GOPATH) \
 	-v "$(shell pwd)":$(DOCKER_WORKDIR) \
 	-w $(DOCKER_WORKDIR) \
