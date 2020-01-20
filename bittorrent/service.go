@@ -476,36 +476,17 @@ func (s *Service) stopServices() {
 	s.session.ApplySettings(s.settingsPack)
 }
 
-func (s *Service) addTorrentWithParams(torrentParams libtorrent.AddTorrentParams, infoHash string) error {
+func (s *Service) addTorrentWithParams(torrentParams libtorrent.AddTorrentParams, infoHash string, shouldStart bool) error {
 	torrentParams.SetSavePath(s.config.DownloadPath)
-	// Make sure we do not download anything yet
-	filesPriorities := libtorrent.NewStdVectorChar()
-	defer libtorrent.DeleteStdVectorChar(filesPriorities)
-	for i := maxFilesPerTorrent; i > 0; i-- {
-		filesPriorities.Add(0)
-	}
-	torrentParams.SetFilePriorities(filesPriorities)
 
-	fastResumeFile := s.fastResumeFilePath(infoHash)
-	if _, e := os.Stat(fastResumeFile); e == nil {
-		if fastResumeData, e := ioutil.ReadFile(fastResumeFile); e != nil {
-			log.Errorf("Error reading fastresume file: %s", e)
-			deleteFile(fastResumeFile)
-		} else {
-			node := libtorrent.NewBdecodeNode()
-			defer libtorrent.DeleteBdecodeNode(node)
-			errorCode := libtorrent.Bdecode(string(fastResumeData), node)
-			defer libtorrent.DeleteErrorCode(errorCode)
-			if errorCode.Failed() {
-				log.Errorf("Error reading fastresume file: %s", errorCode.Message())
-			} else {
-				// TODO: handle this
-				libtorrent.ReadResumeData(node, errorCode)
-				if errorCode.Failed() {
-					log.Errorf("Failed reading resume data: %s", errorCode.Message())
-				}
-			}
+	if !shouldStart {
+		// Make sure we do not download anything yet
+		filesPriorities := libtorrent.NewStdVectorChar()
+		defer libtorrent.DeleteStdVectorChar(filesPriorities)
+		for i := maxFilesPerTorrent; i > 0; i-- {
+			filesPriorities.Add(0)
 		}
+		torrentParams.SetFilePriorities(filesPriorities)
 	}
 
 	if _, _, e := s.getTorrent(infoHash); e == nil {
@@ -537,7 +518,7 @@ func (s *Service) AddMagnet(magnet string) (infoHash string, err error) {
 
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	err = s.addTorrentWithParams(torrentParams, infoHash)
+	err = s.addTorrentWithParams(torrentParams, infoHash, false)
 	return
 }
 
@@ -558,7 +539,7 @@ func (s *Service) AddTorrentData(data []byte) (infoHash string, err error) {
 
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	err = s.addTorrentWithParams(torrentParams, infoHash)
+	err = s.addTorrentWithParams(torrentParams, infoHash, false)
 	if err == nil {
 		if e := ioutil.WriteFile(s.torrentPath(infoHash), data, 0644); e != nil {
 			log.Errorf("Failed saving torrent: %s", err)
@@ -589,7 +570,7 @@ func (s *Service) AddTorrentFile(torrentFile string) (infoHash string, err error
 
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	err = s.addTorrentWithParams(torrentParams, infoHash)
+	err = s.addTorrentWithParams(torrentParams, infoHash, false)
 	if err == nil {
 		torrentDst := s.torrentPath(infoHash)
 		if fi2, e := os.Stat(torrentDst); e != nil || !os.SameFile(fi, fi2) {
@@ -602,7 +583,39 @@ func (s *Service) AddTorrentFile(torrentFile string) (infoHash string, err error
 	return
 }
 
+func (s *Service) addTorrentWithResumeData(fastResumeFile string) (err error) {
+	if fastResumeData, e := ioutil.ReadFile(fastResumeFile); e != nil {
+		deleteFile(fastResumeFile)
+		err = e
+	} else {
+		node := libtorrent.NewBdecodeNode()
+		defer libtorrent.DeleteBdecodeNode(node)
+		errorCode := libtorrent.Bdecode(string(fastResumeData), node)
+		defer libtorrent.DeleteErrorCode(errorCode)
+		if errorCode.Failed() {
+			err = errors.New(errorCode.Message().(string))
+		} else {
+			torrentParams := libtorrent.ReadResumeData(node, errorCode)
+			defer libtorrent.DeleteAddTorrentParams(torrentParams)
+			if errorCode.Failed() {
+				err = errors.New(errorCode.Message().(string))
+			} else {
+				infoHash := hex.EncodeToString([]byte(torrentParams.GetInfoHash().ToString()))
+				err = s.addTorrentWithParams(torrentParams, infoHash, true)
+			}
+		}
+	}
+	return
+}
+
 func (s *Service) loadTorrentFiles() {
+	resumeFiles, _ := filepath.Glob(filepath.Join(s.config.TorrentsPath, "*.fastresume"))
+	for _, fastResumeFile := range resumeFiles {
+		if err := s.addTorrentWithResumeData(fastResumeFile); err != nil {
+			log.Errorf("Failed adding torrent with resume data: %s")
+		}
+	}
+
 	files, _ := filepath.Glob(filepath.Join(s.config.TorrentsPath, "*.torrent"))
 	for _, torrentFile := range files {
 		if infoHash, err := s.AddTorrentFile(torrentFile); err == LoadTorrentError {
