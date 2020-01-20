@@ -50,9 +50,9 @@ type TorrentStatus struct {
 	SeedersTotal    int      `json:"seeders_total"`
 	Peers           int      `json:"peers"`
 	PeersTotal      int      `json:"peers_total"`
-	SeedingTime     int      `json:"seeding_time"`
-	FinishedTime    int      `json:"finished_time"`
-	ActiveTime      int      `json:"active_time"`
+	SeedingTime     int64    `json:"seeding_time"`
+	FinishedTime    int64    `json:"finished_time"`
+	ActiveTime      int64    `json:"active_time"`
 	AllTimeDownload int64    `json:"all_time_download"`
 	AllTimeUpload   int64    `json:"all_time_upload"`
 }
@@ -73,8 +73,8 @@ func DecodeTorrentData(data []byte) (*TorrentFileRaw, error) {
 }
 
 func NewTorrent(service *Service, handle libtorrent.TorrentHandle, infoHash string) *Torrent {
-	status := handle.Status()
-	paused := status.GetPaused() && !status.GetAutoManaged()
+	flags := handle.Flags()
+	paused := hasFlags(flags, libtorrent.GetPaused()) && !hasFlags(flags, libtorrent.GetAutoManaged())
 
 	return &Torrent{
 		service:  service,
@@ -91,13 +91,13 @@ func (t *Torrent) InfoHash() string {
 }
 
 func (t *Torrent) Pause() {
-	t.handle.AutoManaged(false)
+	t.handle.UnsetFlags(libtorrent.GetAutoManaged())
 	t.handle.Pause(1)
 	t.isPaused = true
 }
 
 func (t *Torrent) Resume() {
-	t.handle.AutoManaged(true)
+	t.handle.SetFlags(libtorrent.GetAutoManaged())
 	t.isPaused = false
 }
 
@@ -125,7 +125,7 @@ func (t *Torrent) HasMetadata() bool {
 }
 
 func (t *Torrent) GetStatus() *TorrentStatus {
-	status := t.handle.Status(uint(libtorrent.TorrentHandleQueryName))
+	status := t.handle.Status(libtorrent.TorrentHandleQueryName)
 	seeders := status.GetNumSeeds()
 
 	return &TorrentStatus{
@@ -140,9 +140,9 @@ func (t *Torrent) GetStatus() *TorrentStatus {
 		SeedersTotal:    status.GetNumComplete(),
 		Peers:           status.GetNumPeers() - seeders,
 		PeersTotal:      status.GetNumIncomplete(),
-		SeedingTime:     status.GetSeedingTime(),
-		FinishedTime:    status.GetFinishedTime(),
-		ActiveTime:      status.GetActiveTime(),
+		SeedingTime:     status.GetSeedingDuration(),
+		FinishedTime:    status.GetFinishedDuration(),
+		ActiveTime:      status.GetActiveDuration(),
 		AllTimeDownload: status.GetAllTimeDownload(),
 		AllTimeUpload:   status.GetAllTimeUpload(),
 	}
@@ -233,8 +233,8 @@ func (t *Torrent) checkAvailableSpace() {
 			return
 		}
 
-		status := t.handle.Status(uint(libtorrent.TorrentHandleQueryAccurateDownloadCounters) |
-			uint(libtorrent.TorrentHandleQuerySavePath))
+		status := t.handle.Status(libtorrent.TorrentHandleQueryAccurateDownloadCounters |
+			libtorrent.TorrentHandleQuerySavePath)
 		totalSize := torrentInfo.TotalSize()
 		totalDone := status.GetTotalDone()
 		sizeLeft := totalSize - totalDone
@@ -250,10 +250,14 @@ func (t *Torrent) checkAvailableSpace() {
 
 		if availableSpace < sizeLeft {
 			log.Errorf("Unsufficient free space on %s. Has %d, needs %d.", path, diskStatus.Free, sizeLeft)
-			log.Infof("Pausing torrent %s", t.handle.Status(uint(libtorrent.TorrentHandleQueryName)).GetName())
+			log.Infof("Pausing torrent %s", t.handle.Status(libtorrent.TorrentHandleQueryName).GetName())
 			t.Pause()
 		} else {
 			t.spaceChecked = true
 		}
 	}
+}
+
+func hasFlags(flags, f uint64) bool {
+	return flags&f == f
 }

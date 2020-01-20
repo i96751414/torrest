@@ -75,8 +75,8 @@ type Settings struct {
 	MaxDownloadRate     int              `json:"max_download_rate" example:"0"`
 	MaxUploadRate       int              `json:"max_upload_rate" example:"0"`
 	ShareRatioLimit     int              `json:"share_ratio_limit" example:"0"`
-	SeedTimeRatioLimit  int              `json:"seed_time_ratio_limit" example:"0"`
-	SeedTimeLimit       int              `json:"seed_time_limit" example:"0"`
+	SeedTimeRatioLimit  int64            `json:"seed_time_ratio_limit" example:"0"`
+	SeedTimeLimit       int64            `json:"seed_time_limit" example:"0"`
 	EncryptionPolicy    EncryptionPolicy `json:"encryption_policy" example:"0"`
 	Proxy               *ProxySettings   `json:"proxy"`
 	BufferSize          int64            `json:"buffer_size" example:"20971520"`

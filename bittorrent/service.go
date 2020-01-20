@@ -22,7 +22,7 @@ import (
 var log = logging.MustGetLogger("bittorrent")
 
 const (
-	libtorrentAlertWaitTime = 1
+	libtorrentAlertWaitTime = time.Second
 	libtorrentProgressTime  = 1
 	maxFilesPerTorrent      = 1000
 )
@@ -78,7 +78,6 @@ func NewService(config *settings.Settings) *Service {
 }
 
 func (s *Service) alertsConsumer() {
-	ltTimer := libtorrent.Seconds(libtorrentAlertWaitTime)
 	ipRegex := regexp.MustCompile(`\.\d+`)
 	log.Info("Consuming alerts...")
 	for {
@@ -86,11 +85,13 @@ func (s *Service) alertsConsumer() {
 		case <-s.closing:
 			return
 		default:
-			if s.session.GetHandle().WaitForAlert(ltTimer).Swigcptr() == 0 {
+			if s.session.WaitForAlert(libtorrentAlertWaitTime).Swigcptr() == 0 {
 				continue
 			}
 
-			alerts := s.session.GetHandle().PopAlerts()
+			alerts := libtorrent.NewStdVectorAlerts()
+			s.session.PopAlerts(alerts)
+
 			for i := 0; i < int(alerts.Size()); i++ {
 				ltAlert := alerts.Get(i)
 				alertType := ltAlert.Type()
@@ -114,11 +115,11 @@ func (s *Service) alertsConsumer() {
 				}
 
 				// log alerts
-				if category&int(libtorrent.AlertErrorNotification) != 0 {
+				if category&libtorrent.AlertErrorNotification != 0 {
 					log.Errorf("%s: %s", what, alertMessage)
-				} else if category&int(libtorrent.AlertDebugNotification) != 0 {
+				} else if category&libtorrent.AlertConnectNotification != 0 {
 					log.Debugf("%s: %s", what, alertMessage)
-				} else if category&int(libtorrent.AlertPerformanceWarning) != 0 {
+				} else if category&libtorrent.AlertPerformanceWarning != 0 {
 					log.Warningf("%s: %s", what, alertMessage)
 				} else {
 					log.Noticef("%s: %s", what, alertMessage)
@@ -131,11 +132,16 @@ func (s *Service) alertsConsumer() {
 
 func (s *Service) onSaveResumeData(alert libtorrent.SaveResumeDataAlert) {
 	torrentHandle := alert.GetHandle()
-	torrentStatus := torrentHandle.Status(uint(libtorrent.TorrentHandleQuerySavePath) |
-		uint(libtorrent.TorrentHandleQueryName))
+	torrentStatus := torrentHandle.Status(libtorrent.TorrentHandleQuerySavePath |
+		libtorrent.TorrentHandleQueryName)
 	infoHash := hex.EncodeToString([]byte(torrentStatus.GetInfoHash().ToString()))
 
-	bEncoded := []byte(libtorrent.Bencode(alert.ResumeData()))
+	params := alert.GetParams()
+	defer libtorrent.DeleteAddTorrentParams(params)
+	entry := libtorrent.WriteResumeData(params)
+	defer libtorrent.DeleteEntry(entry)
+
+	bEncoded := []byte(libtorrent.Bencode(entry))
 	if _, err := DecodeTorrentData(bEncoded); err == nil {
 		if err := ioutil.WriteFile(s.fastResumeFilePath(infoHash), bEncoded, 0644); err != nil {
 			log.Errorf("Failed saving '%s.fastresume': %s", infoHash, err)
@@ -148,7 +154,7 @@ func (s *Service) onSaveResumeData(alert libtorrent.SaveResumeDataAlert) {
 
 func (s *Service) onMetadataReceived(alert libtorrent.MetadataReceivedAlert) {
 	torrentHandle := alert.GetHandle()
-	torrentStatus := torrentHandle.Status(uint(libtorrent.TorrentHandleQueryName))
+	torrentStatus := torrentHandle.Status(libtorrent.TorrentHandleQueryName)
 	infoHash := hex.EncodeToString([]byte(torrentStatus.GetInfoHash().ToString()))
 
 	// Save .torrent
@@ -167,7 +173,7 @@ func (s *Service) onStateChanged(alert libtorrent.StateChangedAlert) {
 	switch alert.GetState() {
 	case libtorrent.TorrentStatusDownloading:
 		torrentHandle := alert.GetHandle()
-		torrentStatus := torrentHandle.Status(uint(libtorrent.TorrentHandleQueryName))
+		torrentStatus := torrentHandle.Status(libtorrent.TorrentHandleQueryName)
 		infoHash := hex.EncodeToString([]byte(torrentStatus.GetInfoHash().ToString()))
 		if _, torrent, err := s.getTorrent(infoHash); err == nil {
 			torrent.checkAvailableSpace()
@@ -427,7 +433,7 @@ func (s *Service) configure() {
 		s.settingsPack.SetBool(libtorrent.SettingByName("enable_natpmp"), true)
 	}
 
-	s.session = libtorrent.NewSession(s.settingsPack, int(libtorrent.SessionHandleAddDefaultPlugins))
+	s.session = libtorrent.NewSession(s.settingsPack, libtorrent.SessionHandleAddDefaultPlugins)
 }
 
 func (s *Service) setBufferingRateLimit(enable bool) {
@@ -447,7 +453,7 @@ func (s *Service) setBufferingRateLimit(enable bool) {
 			s.settingsPack.SetInt(libtorrent.SettingByName("download_rate_limit"), 0)
 			s.settingsPack.SetInt(libtorrent.SettingByName("upload_rate_limit"), 0)
 		}
-		s.session.GetHandle().ApplySettings(s.settingsPack)
+		s.session.ApplySettings(s.settingsPack)
 	}
 }
 
@@ -468,7 +474,7 @@ func (s *Service) stopServices() {
 		s.settingsPack.SetBool(libtorrent.SettingByName("enable_natpmp"), false)
 	}
 
-	s.session.GetHandle().ApplySettings(s.settingsPack)
+	s.session.ApplySettings(s.settingsPack)
 }
 
 func (s *Service) addTorrentWithParams(torrentParams libtorrent.AddTorrentParams, infoHash string) error {
@@ -487,19 +493,26 @@ func (s *Service) addTorrentWithParams(torrentParams libtorrent.AddTorrentParams
 			log.Errorf("Error reading fastresume file: %s", e)
 			deleteFile(fastResumeFile)
 		} else {
-			fastResumeVector := libtorrent.NewStdVectorChar()
-			defer libtorrent.DeleteStdVectorChar(fastResumeVector)
-			for _, c := range fastResumeData {
-				fastResumeVector.Add(c)
+			node := libtorrent.NewBdecodeNode()
+			defer libtorrent.DeleteBdecodeNode(node)
+			errorCode := libtorrent.Bdecode(string(fastResumeData), node)
+			defer libtorrent.DeleteErrorCode(errorCode)
+			if errorCode.Failed() {
+				log.Errorf("Error reading fastresume file: %s", errorCode.Message())
+			} else {
+				// TODO: handle this
+				libtorrent.ReadResumeData(node, errorCode)
+				if errorCode.Failed() {
+					log.Errorf("Failed reading resume data: %s", errorCode.Message())
+				}
 			}
-			torrentParams.SetResumeData(fastResumeVector)
 		}
 	}
 
 	if _, _, e := s.getTorrent(infoHash); e == nil {
 		return DuplicateTorrentError
 	} else {
-		torrentHandle := s.session.GetHandle().AddTorrent(torrentParams)
+		torrentHandle := s.session.AddTorrent(torrentParams)
 		if torrentHandle == nil || !torrentHandle.IsValid() {
 			log.Errorf("Error adding torrent '%s'", infoHash)
 			return LoadTorrentError
@@ -619,7 +632,7 @@ func (s *Service) downloadProgress() {
 		case <-s.closing:
 			return
 		case <-progressTicker.C:
-			if s.session.GetHandle().IsPaused() {
+			if s.session.IsPaused() {
 				continue
 			}
 
@@ -638,7 +651,7 @@ func (s *Service) downloadProgress() {
 					continue
 				}
 
-				torrentStatus := t.handle.Status(uint(libtorrent.TorrentHandleQueryName))
+				torrentStatus := t.handle.Status(libtorrent.TorrentHandleQueryName)
 				if !torrentStatus.GetHasMetadata() {
 					continue
 				}
@@ -665,8 +678,8 @@ func (s *Service) downloadProgress() {
 					continue
 				}
 
-				seedingTime := torrentStatus.GetSeedingTime()
-				finishedTime := torrentStatus.GetFinishedTime()
+				seedingTime := torrentStatus.GetSeedingDuration()
+				finishedTime := torrentStatus.GetFinishedDuration()
 				if progress == 100 && seedingTime == 0 {
 					seedingTime = finishedTime
 				}
@@ -679,7 +692,7 @@ func (s *Service) downloadProgress() {
 					}
 				}
 				if s.config.SeedTimeRatioLimit > 0 {
-					if downloadTime := torrentStatus.GetActiveTime() - seedingTime; downloadTime > 1 {
+					if downloadTime := torrentStatus.GetActiveDuration() - seedingTime; downloadTime > 1 {
 						timeRatio := seedingTime * 100 / downloadTime
 						if timeRatio >= s.config.SeedTimeRatioLimit {
 							log.Warningf("Seeding time ratio reached, pausing %s", torrentStatus.GetName())
@@ -764,7 +777,7 @@ func (s *Service) RemoveTorrent(infoHash string, removeFiles bool) error {
 		if removeFiles {
 			flags |= int(libtorrent.SessionHandleDeleteFiles)
 		}
-		s.session.GetHandle().RemoveTorrent(torrent.handle, flags)
+		s.session.RemoveTorrent(torrent.handle, flags)
 		s.torrents = append(s.torrents[:index], s.torrents[index+1:]...)
 	}
 
