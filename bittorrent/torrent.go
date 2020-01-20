@@ -157,11 +157,13 @@ func (t *Torrent) Files() []*File {
 	defer t.mu.Unlock()
 
 	if t.files == nil {
-		info := t.TorrentInfo()
-		files := info.Files()
-		t.files = make([]*File, info.NumFiles())
-		for i := 0; i < info.NumFiles(); i++ {
-			t.files[i] = NewFile(t, files, i)
+		if info := t.TorrentInfo(); info.Swigcptr() != 0 {
+			defer libtorrent.DeleteTorrentInfo(info)
+			files := info.Files()
+			t.files = make([]*File, info.NumFiles())
+			for i := 0; i < info.NumFiles(); i++ {
+				t.files[i] = NewFile(t, files, i)
+			}
 		}
 	}
 	return t.files
