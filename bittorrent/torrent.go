@@ -158,7 +158,6 @@ func (t *Torrent) Files() []*File {
 
 	if t.files == nil {
 		if info := t.TorrentInfo(); info.Swigcptr() != 0 {
-			defer libtorrent.DeleteTorrentInfo(info)
 			files := info.Files()
 			t.files = make([]*File, info.NumFiles())
 			for i := 0; i < info.NumFiles(); i++ {

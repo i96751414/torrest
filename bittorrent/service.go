@@ -137,7 +137,6 @@ func (s *Service) onSaveResumeData(alert libtorrent.SaveResumeDataAlert) {
 	infoHash := hex.EncodeToString([]byte(torrentStatus.GetInfoHash().ToString()))
 
 	params := alert.GetParams()
-	defer libtorrent.DeleteAddTorrentParams(params)
 	entry := libtorrent.WriteResumeData(params)
 	defer libtorrent.DeleteEntry(entry)
 
@@ -195,7 +194,7 @@ func (s *Service) saveResumeDataLoop() {
 				if torrent.handle.IsValid() {
 					status := torrent.handle.Status()
 					if status.GetHasMetadata() && status.GetNeedSaveResume() {
-						torrent.handle.SaveResumeData(1)
+						torrent.handle.SaveResumeData(libtorrent.TorrentHandleSaveInfoDict)
 					}
 				}
 			}
