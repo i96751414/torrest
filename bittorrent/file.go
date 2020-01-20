@@ -106,7 +106,7 @@ func (f *File) BytesCompleted() int64 {
 	return f.torrent.getFilesDownloadedBytes()[f.index]
 }
 
-func (f *File) SetPriority(priority int) {
+func (f *File) SetPriority(priority uint) {
 	f.torrent.handle.FilePriority(f.index, priority)
 }
 

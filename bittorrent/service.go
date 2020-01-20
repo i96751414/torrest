@@ -590,8 +590,9 @@ func (s *Service) addTorrentWithResumeData(fastResumeFile string) (err error) {
 	} else {
 		node := libtorrent.NewBdecodeNode()
 		defer libtorrent.DeleteBdecodeNode(node)
-		errorCode := libtorrent.Bdecode(string(fastResumeData), node)
+		errorCode := libtorrent.NewErrorCode()
 		defer libtorrent.DeleteErrorCode(errorCode)
+		libtorrent.Bdecode(string(fastResumeData), node, errorCode)
 		if errorCode.Failed() {
 			err = errors.New(errorCode.Message().(string))
 		} else {
@@ -785,9 +786,9 @@ func (s *Service) RemoveTorrent(infoHash string, removeFiles bool) error {
 		s.deleteFastResumeFile(infoHash)
 		s.deleteTorrentFile(infoHash)
 
-		var flags int
+		var flags uint
 		if removeFiles {
-			flags |= int(libtorrent.SessionHandleDeleteFiles)
+			flags |= libtorrent.SessionHandleDeleteFiles
 		}
 		s.session.RemoveTorrent(torrent.handle, flags)
 		s.torrents = append(s.torrents[:index], s.torrents[index+1:]...)
