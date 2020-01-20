@@ -18,6 +18,6 @@ const (
 // set those limits.
 func setPlatformSpecificSettings(settingsPack libtorrent.SettingsPack) {
 	if runtime.NumCPU() == 1 { // single core?
-		settingsPack.SetInt(libtorrent.SettingByName("connections_limit"), maxSingleCoreConnections)
+		settingsPack.SetInt("connections_limit", maxSingleCoreConnections)
 	}
 }

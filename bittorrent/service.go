@@ -256,49 +256,49 @@ func (s *Service) configure() {
 	log.Infof("UserAgent: %s", s.UserAgent)
 
 	if s.config.UserAgent != settings.LibtorrentUA {
-		s.settingsPack.SetStr(libtorrent.SettingByName("user_agent"), s.UserAgent)
+		s.settingsPack.SetStr("user_agent", s.UserAgent)
 	}
-	s.settingsPack.SetInt(libtorrent.SettingByName("request_timeout"), 2)
-	s.settingsPack.SetInt(libtorrent.SettingByName("peer_connect_timeout"), 2)
-	s.settingsPack.SetBool(libtorrent.SettingByName("strict_end_game_mode"), true)
-	s.settingsPack.SetBool(libtorrent.SettingByName("announce_to_all_trackers"), true)
-	s.settingsPack.SetBool(libtorrent.SettingByName("announce_to_all_tiers"), true)
-	s.settingsPack.SetInt(libtorrent.SettingByName("connection_speed"), 500)
-	s.settingsPack.SetInt(libtorrent.SettingByName("download_rate_limit"), 0)
-	s.settingsPack.SetInt(libtorrent.SettingByName("upload_rate_limit"), 0)
-	s.settingsPack.SetInt(libtorrent.SettingByName("choking_algorithm"), 0)
-	s.settingsPack.SetInt(libtorrent.SettingByName("share_ratio_limit"), 0)
-	s.settingsPack.SetInt(libtorrent.SettingByName("seed_time_ratio_limit"), 0)
-	s.settingsPack.SetInt(libtorrent.SettingByName("seed_time_limit"), 0)
-	s.settingsPack.SetInt(libtorrent.SettingByName("peer_tos"), ipToSLowCost)
-	s.settingsPack.SetInt(libtorrent.SettingByName("torrent_connect_boost"), 0)
-	s.settingsPack.SetBool(libtorrent.SettingByName("rate_limit_ip_overhead"), true)
-	s.settingsPack.SetBool(libtorrent.SettingByName("no_atime_storage"), true)
-	s.settingsPack.SetBool(libtorrent.SettingByName("announce_double_nat"), true)
-	s.settingsPack.SetBool(libtorrent.SettingByName("prioritize_partial_pieces"), false)
-	s.settingsPack.SetBool(libtorrent.SettingByName("free_torrent_hashes"), true)
-	s.settingsPack.SetBool(libtorrent.SettingByName("use_parole_mode"), true)
-	s.settingsPack.SetInt(libtorrent.SettingByName("seed_choking_algorithm"), int(libtorrent.SettingsPackFastestUpload))
-	s.settingsPack.SetBool(libtorrent.SettingByName("upnp_ignore_nonrouters"), true)
-	s.settingsPack.SetBool(libtorrent.SettingByName("lazy_bitfields"), true)
-	s.settingsPack.SetInt(libtorrent.SettingByName("stop_tracker_timeout"), 1)
-	s.settingsPack.SetInt(libtorrent.SettingByName("auto_scrape_interval"), 1200)
-	s.settingsPack.SetInt(libtorrent.SettingByName("auto_scrape_min_interval"), 900)
-	s.settingsPack.SetBool(libtorrent.SettingByName("ignore_limits_on_local_network"), true)
-	s.settingsPack.SetBool(libtorrent.SettingByName("rate_limit_utp"), true)
-	s.settingsPack.SetInt(libtorrent.SettingByName("mixed_mode_algorithm"), int(libtorrent.SettingsPackPreferTcp))
+	s.settingsPack.SetInt("request_timeout", 2)
+	s.settingsPack.SetInt("peer_connect_timeout", 2)
+	s.settingsPack.SetBool("strict_end_game_mode", true)
+	s.settingsPack.SetBool("announce_to_all_trackers", true)
+	s.settingsPack.SetBool("announce_to_all_tiers", true)
+	s.settingsPack.SetInt("connection_speed", 500)
+	s.settingsPack.SetInt("download_rate_limit", 0)
+	s.settingsPack.SetInt("upload_rate_limit", 0)
+	s.settingsPack.SetInt("choking_algorithm", 0)
+	s.settingsPack.SetInt("share_ratio_limit", 0)
+	s.settingsPack.SetInt("seed_time_ratio_limit", 0)
+	s.settingsPack.SetInt("seed_time_limit", 0)
+	s.settingsPack.SetInt("peer_tos", ipToSLowCost)
+	s.settingsPack.SetInt("torrent_connect_boost", 0)
+	s.settingsPack.SetBool("rate_limit_ip_overhead", true)
+	s.settingsPack.SetBool("no_atime_storage", true)
+	s.settingsPack.SetBool("announce_double_nat", true)
+	s.settingsPack.SetBool("prioritize_partial_pieces", false)
+	s.settingsPack.SetBool("free_torrent_hashes", true)
+	s.settingsPack.SetBool("use_parole_mode", true)
+	s.settingsPack.SetInt("seed_choking_algorithm", int(libtorrent.SettingsPackFastestUpload))
+	s.settingsPack.SetBool("upnp_ignore_nonrouters", true)
+	s.settingsPack.SetBool("lazy_bitfields", true)
+	s.settingsPack.SetInt("stop_tracker_timeout", 1)
+	s.settingsPack.SetInt("auto_scrape_interval", 1200)
+	s.settingsPack.SetInt("auto_scrape_min_interval", 900)
+	s.settingsPack.SetBool("ignore_limits_on_local_network", true)
+	s.settingsPack.SetBool("rate_limit_utp", true)
+	s.settingsPack.SetInt("mixed_mode_algorithm", int(libtorrent.SettingsPackPreferTcp))
 
 	// For Android external storage / OS-mounted NAS setups
 	if s.config.TunedStorage {
-		s.settingsPack.SetBool(libtorrent.SettingByName("use_read_cache"), true)
-		s.settingsPack.SetBool(libtorrent.SettingByName("coalesce_reads"), true)
-		s.settingsPack.SetBool(libtorrent.SettingByName("coalesce_writes"), true)
-		s.settingsPack.SetInt(libtorrent.SettingByName("max_queued_disk_bytes"), 10*1024*1024)
-		s.settingsPack.SetInt(libtorrent.SettingByName("cache_size"), -1)
+		s.settingsPack.SetBool("use_read_cache", true)
+		s.settingsPack.SetBool("coalesce_reads", true)
+		s.settingsPack.SetBool("coalesce_writes", true)
+		s.settingsPack.SetInt("max_queued_disk_bytes", 10*1024*1024)
+		s.settingsPack.SetInt("cache_size", -1)
 	}
 
 	if s.config.ConnectionsLimit > 0 {
-		s.settingsPack.SetInt(libtorrent.SettingByName("connections_limit"), s.config.ConnectionsLimit)
+		s.settingsPack.SetInt("connections_limit", s.config.ConnectionsLimit)
 	} else {
 		setPlatformSpecificSettings(s.settingsPack)
 	}
@@ -306,24 +306,24 @@ func (s *Service) configure() {
 	if !s.config.LimitAfterBuffering {
 		if s.config.MaxDownloadRate > 0 {
 			log.Infof("Rate limiting download to %dkB/s", s.config.MaxDownloadRate/1024)
-			s.settingsPack.SetInt(libtorrent.SettingByName("download_rate_limit"), s.config.MaxDownloadRate)
+			s.settingsPack.SetInt("download_rate_limit", s.config.MaxDownloadRate)
 		}
 		if s.config.MaxUploadRate > 0 {
 			log.Infof("Rate limiting upload to %dkB/s", s.config.MaxUploadRate/1024)
 			// If we have an upload rate, use the nicer bittyrant choker
-			s.settingsPack.SetInt(libtorrent.SettingByName("upload_rate_limit"), s.config.MaxUploadRate)
-			s.settingsPack.SetInt(libtorrent.SettingByName("choking_algorithm"), int(libtorrent.SettingsPackBittyrantChoker))
+			s.settingsPack.SetInt("upload_rate_limit", s.config.MaxUploadRate)
+			s.settingsPack.SetInt("choking_algorithm", int(libtorrent.SettingsPackBittyrantChoker))
 		}
 	}
 
 	if s.config.ShareRatioLimit > 0 {
-		s.settingsPack.SetInt(libtorrent.SettingByName("share_ratio_limit"), s.config.ShareRatioLimit)
+		s.settingsPack.SetInt("share_ratio_limit", s.config.ShareRatioLimit)
 	}
 	if s.config.SeedTimeRatioLimit > 0 {
-		s.settingsPack.SetInt(libtorrent.SettingByName("seed_time_ratio_limit"), s.config.SeedTimeRatioLimit)
+		s.settingsPack.SetInt("seed_time_ratio_limit", s.config.SeedTimeRatioLimit)
 	}
 	if s.config.SeedTimeLimit > 0 {
-		s.settingsPack.SetInt(libtorrent.SettingByName("seed_time_limit"), s.config.SeedTimeLimit)
+		s.settingsPack.SetInt("seed_time_limit", s.config.SeedTimeLimit)
 	}
 
 	log.Info("Applying encryption settings...")
@@ -343,35 +343,35 @@ func (s *Service) configure() {
 			preferRc4 = true
 		}
 
-		s.settingsPack.SetInt(libtorrent.SettingByName("out_enc_policy"), policy)
-		s.settingsPack.SetInt(libtorrent.SettingByName("in_enc_policy"), policy)
-		s.settingsPack.SetInt(libtorrent.SettingByName("allowed_enc_level"), level)
-		s.settingsPack.SetBool(libtorrent.SettingByName("prefer_rc4"), preferRc4)
+		s.settingsPack.SetInt("out_enc_policy", policy)
+		s.settingsPack.SetInt("in_enc_policy", policy)
+		s.settingsPack.SetInt("allowed_enc_level", level)
+		s.settingsPack.SetBool("prefer_rc4", preferRc4)
 	} else if s.config.EncryptionPolicy != settings.EncryptionEnabledPolicy {
 		log.Warning("Invalid encryption policy provided. Using default")
 	}
 
 	if s.config.Proxy != nil && s.config.Proxy.Type != settings.ProxyTypeNone {
 		log.Info("Applying proxy settings...")
-		s.settingsPack.SetInt(libtorrent.SettingByName("proxy_type"), s.config.Proxy.Type)
-		s.settingsPack.SetInt(libtorrent.SettingByName("proxy_port"), s.config.Proxy.Port)
-		s.settingsPack.SetStr(libtorrent.SettingByName("proxy_hostname"), s.config.Proxy.Hostname)
-		s.settingsPack.SetStr(libtorrent.SettingByName("proxy_username"), s.config.Proxy.Username)
-		s.settingsPack.SetStr(libtorrent.SettingByName("proxy_password"), s.config.Proxy.Password)
-		s.settingsPack.SetBool(libtorrent.SettingByName("proxy_tracker_connections"), true)
-		s.settingsPack.SetBool(libtorrent.SettingByName("proxy_peer_connections"), true)
-		s.settingsPack.SetBool(libtorrent.SettingByName("proxy_hostnames"), true)
-		s.settingsPack.SetBool(libtorrent.SettingByName("force_proxy"), true)
+		s.settingsPack.SetInt("proxy_type", s.config.Proxy.Type)
+		s.settingsPack.SetInt("proxy_port", s.config.Proxy.Port)
+		s.settingsPack.SetStr("proxy_hostname", s.config.Proxy.Hostname)
+		s.settingsPack.SetStr("proxy_username", s.config.Proxy.Username)
+		s.settingsPack.SetStr("proxy_password", s.config.Proxy.Password)
+		s.settingsPack.SetBool("proxy_tracker_connections", true)
+		s.settingsPack.SetBool("proxy_peer_connections", true)
+		s.settingsPack.SetBool("proxy_hostnames", true)
+		s.settingsPack.SetBool("force_proxy", true)
 		if s.config.Proxy.Type == settings.ProxyTypeI2PSAM {
-			s.settingsPack.SetInt(libtorrent.SettingByName("i2p_port"), s.config.Proxy.Port)
-			s.settingsPack.SetStr(libtorrent.SettingByName("i2p_hostname"), s.config.Proxy.Hostname)
-			s.settingsPack.SetBool(libtorrent.SettingByName("allows_i2p_mixed"), false)
-			s.settingsPack.SetBool(libtorrent.SettingByName("allows_i2p_mixed"), true)
+			s.settingsPack.SetInt("i2p_port", s.config.Proxy.Port)
+			s.settingsPack.SetStr("i2p_hostname", s.config.Proxy.Hostname)
+			s.settingsPack.SetBool("allows_i2p_mixed", false)
+			s.settingsPack.SetBool("allows_i2p_mixed", true)
 		}
 	}
 
 	// Set alert_mask here so it also applies on reconfigure...
-	s.settingsPack.SetInt(libtorrent.SettingByName("alert_mask"), int(
+	s.settingsPack.SetInt("alert_mask", int(
 		libtorrent.AlertStatusNotification|
 			libtorrent.AlertStorageNotification|
 			libtorrent.AlertErrorNotification))
@@ -402,19 +402,19 @@ func (s *Service) configure() {
 			listenInterfacesStrings = append(listenInterfacesStrings, listenInterface+":"+listenPorts[rand.Intn(len(listenPorts))])
 		}
 	}
-	s.settingsPack.SetStr(libtorrent.SettingByName("listen_interfaces"), strings.Join(listenInterfacesStrings, ","))
+	s.settingsPack.SetStr("listen_interfaces", strings.Join(listenInterfacesStrings, ","))
 
 	outgoingInterfaces := strings.TrimSpace(s.config.OutgoingInterfaces)
 	if outgoingInterfaces != "" {
-		s.settingsPack.SetStr(libtorrent.SettingByName("outgoing_interfaces"), strings.Replace(outgoingInterfaces, " ", "", -1))
+		s.settingsPack.SetStr("outgoing_interfaces", strings.Replace(outgoingInterfaces, " ", "", -1))
 	}
 
 	log.Info("Starting LSD...")
-	s.settingsPack.SetBool(libtorrent.SettingByName("enable_lsd"), true)
+	s.settingsPack.SetBool("enable_lsd", true)
 
 	if !s.config.DisableDHT {
 		log.Info("Starting DHT...")
-		s.settingsPack.SetStr(libtorrent.SettingByName("dht_bootstrap_nodes"), strings.Join([]string{
+		s.settingsPack.SetStr("dht_bootstrap_nodes", strings.Join([]string{
 			"router.utorrent.com:6881",
 			"router.bittorrent.com:6881",
 			"dht.transmissionbt.com:6881",
@@ -422,15 +422,15 @@ func (s *Service) configure() {
 			"router.silotis.us:6881",   // IPv6
 			"dht.libtorrent.org:25401", // @arvidn's
 		}, ","))
-		s.settingsPack.SetBool(libtorrent.SettingByName("enable_dht"), true)
+		s.settingsPack.SetBool("enable_dht", true)
 	}
 
 	if !s.config.DisableUPNP {
 		log.Info("Starting UPNP...")
-		s.settingsPack.SetBool(libtorrent.SettingByName("enable_upnp"), true)
+		s.settingsPack.SetBool("enable_upnp", true)
 
 		log.Info("Starting NATPMP...")
-		s.settingsPack.SetBool(libtorrent.SettingByName("enable_natpmp"), true)
+		s.settingsPack.SetBool("enable_natpmp", true)
 	}
 
 	s.session = libtorrent.NewSession(s.settingsPack, libtorrent.SessionHandleAddDefaultPlugins)
@@ -441,17 +441,17 @@ func (s *Service) setBufferingRateLimit(enable bool) {
 		if enable {
 			if s.config.MaxDownloadRate > 0 {
 				log.Infof("Buffer filled, rate limiting download to %dkB/s", s.config.MaxDownloadRate/1024)
-				s.settingsPack.SetInt(libtorrent.SettingByName("download_rate_limit"), s.config.MaxDownloadRate)
+				s.settingsPack.SetInt("download_rate_limit", s.config.MaxDownloadRate)
 			}
 			if s.config.MaxUploadRate > 0 {
 				// If we have an upload rate, use the nicer bittyrant choker
 				log.Infof("Buffer filled, rate limiting upload to %dkB/s", s.config.MaxUploadRate/1024)
-				s.settingsPack.SetInt(libtorrent.SettingByName("upload_rate_limit"), s.config.MaxUploadRate)
+				s.settingsPack.SetInt("upload_rate_limit", s.config.MaxUploadRate)
 			}
 		} else {
 			log.Info("Resetting rate limiting")
-			s.settingsPack.SetInt(libtorrent.SettingByName("download_rate_limit"), 0)
-			s.settingsPack.SetInt(libtorrent.SettingByName("upload_rate_limit"), 0)
+			s.settingsPack.SetInt("download_rate_limit", 0)
+			s.settingsPack.SetInt("upload_rate_limit", 0)
 		}
 		s.session.ApplySettings(s.settingsPack)
 	}
@@ -459,19 +459,19 @@ func (s *Service) setBufferingRateLimit(enable bool) {
 
 func (s *Service) stopServices() {
 	log.Info("Stopping LSD...")
-	s.settingsPack.SetBool(libtorrent.SettingByName("enable_lsd"), false)
+	s.settingsPack.SetBool("enable_lsd", false)
 
 	if !s.config.DisableDHT {
 		log.Info("Stopping DHT...")
-		s.settingsPack.SetBool(libtorrent.SettingByName("enable_dht"), false)
+		s.settingsPack.SetBool("enable_dht", false)
 	}
 
 	if !s.config.DisableUPNP {
 		log.Info("Stopping UPNP...")
-		s.settingsPack.SetBool(libtorrent.SettingByName("enable_upnp"), false)
+		s.settingsPack.SetBool("enable_upnp", false)
 
 		log.Info("Stopping NATPMP...")
-		s.settingsPack.SetBool(libtorrent.SettingByName("enable_natpmp"), false)
+		s.settingsPack.SetBool("enable_natpmp", false)
 	}
 
 	s.session.ApplySettings(s.settingsPack)
