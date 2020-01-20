@@ -126,7 +126,18 @@ func (t *Torrent) HasMetadata() bool {
 
 func (t *Torrent) GetStatus() *TorrentStatus {
 	status := t.handle.Status(libtorrent.TorrentHandleQueryName)
+
 	seeders := status.GetNumSeeds()
+	seedersTotal := status.GetNumComplete()
+	if seedersTotal < 0 {
+		seedersTotal = seeders
+	}
+
+	peers := status.GetNumPeers() - seeders
+	peersTotal := status.GetNumIncomplete()
+	if peersTotal < 0 {
+		peersTotal = peers
+	}
 
 	return &TorrentStatus{
 		Name:            status.GetName(),
@@ -137,9 +148,9 @@ func (t *Torrent) GetStatus() *TorrentStatus {
 		HasMetadata:     status.GetHasMetadata(),
 		State:           t.GetState(),
 		Seeders:         seeders,
-		SeedersTotal:    status.GetNumComplete(),
-		Peers:           status.GetNumPeers() - seeders,
-		PeersTotal:      status.GetNumIncomplete(),
+		SeedersTotal:    seedersTotal,
+		Peers:           peers,
+		PeersTotal:      peersTotal,
 		SeedingTime:     status.GetSeedingDuration(),
 		FinishedTime:    status.GetFinishedDuration(),
 		ActiveTime:      status.GetActiveDuration(),
