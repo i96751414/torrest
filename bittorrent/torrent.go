@@ -224,10 +224,11 @@ func (t *Torrent) piecesBytesMissing(pieces []int) (missing int64) {
 	queue := libtorrent.NewStdVectorPartialPieceInfo()
 	defer libtorrent.DeleteStdVectorPartialPieceInfo(queue)
 	t.handle.GetDownloadQueue(queue)
+	info := t.TorrentInfo()
 
 	for _, piece := range pieces {
 		if !t.handle.HavePiece(piece) {
-			missing += int64(t.TorrentInfo().PieceSize(piece))
+			missing += int64(info.PieceSize(piece))
 		}
 	}
 
@@ -235,7 +236,8 @@ func (t *Torrent) piecesBytesMissing(pieces []int) (missing int64) {
 		ppi := queue.Get(i)
 		if containsInt(pieces, ppi.GetPieceIndex()) {
 			blocks := ppi.Blocks()
-			for b := 0; b < ppi.GetBlocksInPiece(); b++ {
+			blocksInPiece := ppi.GetBlocksInPiece()
+			for b := 0; b < blocksInPiece; b++ {
 				missing -= int64(blocks.Getitem(b).GetBytesProgress())
 			}
 		}

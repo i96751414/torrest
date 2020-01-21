@@ -118,6 +118,13 @@ func (f *File) IsDownloading() bool {
 	return f.isBuffering || f.GetPriority() > 0
 }
 
+func (f *File) addBufferPiece(piece int, info libtorrent.TorrentInfo) {
+	f.torrent.handle.PiecePriority(piece, TopPriority)
+	f.torrent.handle.SetPieceDeadline(piece, 0)
+	f.bufferSize += int64(info.PieceSize(piece))
+	f.bufferPieces = append(f.bufferPieces, piece)
+}
+
 func (f *File) Buffer(startBufferSize, endBufferSize int64) {
 	f.bufferSize = 0
 	f.bufferPieces = nil
@@ -127,26 +134,17 @@ func (f *File) Buffer(startBufferSize, endBufferSize int64) {
 	if f.length >= bufferSize {
 		aFirstPieceIndex, aEndPieceIndex := f.getPiecesIndexes(0, startBufferSize)
 		for idx := aFirstPieceIndex; idx <= aEndPieceIndex; idx++ {
-			f.torrent.handle.PiecePriority(idx, TopPriority)
-			f.torrent.handle.SetPieceDeadline(idx, 0)
-			f.bufferSize += int64(info.PieceSize(idx))
-			f.bufferPieces = append(f.bufferPieces, idx)
+			f.addBufferPiece(idx, info)
 		}
 
 		bFirstPieceIndex, bEndPieceIndex := f.getPiecesIndexes(f.length-endBufferSize, endBufferSize)
 		for idx := bFirstPieceIndex; idx <= bEndPieceIndex; idx++ {
-			f.torrent.handle.PiecePriority(idx, TopPriority)
-			f.torrent.handle.SetPieceDeadline(idx, 0)
-			f.bufferSize += int64(info.PieceSize(idx))
-			f.bufferPieces = append(f.bufferPieces, idx)
+			f.addBufferPiece(idx, info)
 		}
 	} else {
 		firstPieceIndex, endPieceIndex := f.getPiecesIndexes(0, f.length)
 		for idx := firstPieceIndex; idx <= endPieceIndex; idx++ {
-			f.torrent.handle.PiecePriority(idx, TopPriority)
-			f.torrent.handle.SetPieceDeadline(idx, 0)
-			f.bufferSize += int64(info.PieceSize(idx))
-			f.bufferPieces = append(f.bufferPieces, idx)
+			f.addBufferPiece(idx, info)
 		}
 	}
 
