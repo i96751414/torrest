@@ -1,6 +1,7 @@
 package api
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -26,10 +27,21 @@ type MessageResponse struct {
 	Message string `json:"message" example:"done"`
 }
 
-func NewErrorResponse(err error) *ErrorResponse {
-	return &ErrorResponse{
-		Error: err.Error(),
+func NewErrorResponse(err interface{}) *ErrorResponse {
+	r := ErrorResponse{}
+	switch err.(type) {
+	case string:
+		r.Error = err.(string)
+	case error:
+		r.Error = err.(error).Error()
+	default:
+		panic("expecting either string or error")
 	}
+	return &r
+}
+
+func NewMessageResponse(a ...interface{}) *MessageResponse {
+	return &MessageResponse{Message: fmt.Sprint(a...)}
 }
 
 // @title Torrest API
