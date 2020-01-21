@@ -1,7 +1,6 @@
 package api
 
 import (
-	"fmt"
 	"mime/multipart"
 	"net/http"
 	"strconv"
@@ -124,7 +123,7 @@ func removeTorrent(service *bittorrent.Service) gin.HandlerFunc {
 		removeFiles := ctx.DefaultQuery("delete", "true") == "true"
 
 		if err := service.RemoveTorrent(infoHash, removeFiles); err == nil {
-			ctx.JSON(http.StatusOK, NewMessageResponse(fmt.Sprintf("Torrent '%s' deleted", infoHash)))
+			ctx.JSON(http.StatusOK, NewMessageResponse("Torrent '%s' deleted", infoHash))
 		} else {
 			ctx.JSON(http.StatusNotFound, NewErrorResponse(err))
 		}
@@ -143,7 +142,7 @@ func resumeTorrent(service *bittorrent.Service) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		onGetTorrent(ctx, service, func(torrent *bittorrent.Torrent) {
 			torrent.Resume()
-			ctx.JSON(http.StatusOK, NewMessageResponse(fmt.Sprintf("Torrent '%s' resumed", torrent.InfoHash())))
+			ctx.JSON(http.StatusOK, NewMessageResponse("Torrent '%s' resumed", torrent.InfoHash()))
 		})
 	}
 }
@@ -160,7 +159,7 @@ func pauseTorrent(service *bittorrent.Service) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		onGetTorrent(ctx, service, func(torrent *bittorrent.Torrent) {
 			torrent.Pause()
-			ctx.JSON(http.StatusOK, NewMessageResponse(fmt.Sprintf("Torrent '%s' paused", torrent.InfoHash())))
+			ctx.JSON(http.StatusOK, NewMessageResponse("Torrent '%s' paused", torrent.InfoHash()))
 		})
 	}
 }
@@ -207,16 +206,16 @@ func torrentFiles(service *bittorrent.Service) gin.HandlerFunc {
 	}
 }
 
-// @Summary Download Torrent File
-// @Description download file from torrent give its id
+// @Summary Download File
+// @Description download file from torrent given its id
 // @ID download-file
 // @Produce json
 // @Param infoHash path string true "torrent info hash"
 // @Param file path integer true "file id"
 // @Param buffer query boolean false "buffer file"
 // @Success 200 {object} MessageResponse
-// @Failure 404 {object} ErrorResponse
 // @Failure 400 {object} ErrorResponse
+// @Failure 404 {object} ErrorResponse
 // @Failure 500 {object} ErrorResponse
 // @Router /torrents/{infoHash}/files/{file}/download [get]
 func downloadFile(config *settings.Settings, service *bittorrent.Service) gin.HandlerFunc {
@@ -230,7 +229,27 @@ func downloadFile(config *settings.Settings, service *bittorrent.Service) gin.Ha
 				}
 				file.Buffer(bufferSize, endBufferSize)
 			}
-			ctx.JSON(http.StatusOK, NewMessageResponse(fmt.Sprintf("file '%d' is downloading", file.Id())))
+			ctx.JSON(http.StatusOK, NewMessageResponse("file '%d' is downloading", file.Id()))
+		})
+	}
+}
+
+// @Summary Stop File Download
+// @Description stop file download from torrent given its id
+// @ID stop-file
+// @Produce json
+// @Param infoHash path string true "torrent info hash"
+// @Param file path integer true "file id"
+// @Success 200 {object} MessageResponse
+// @Failure 400 {object} ErrorResponse
+// @Failure 404 {object} ErrorResponse
+// @Failure 500 {object} ErrorResponse
+// @Router /torrents/{infoHash}/files/{file}/stop [get]
+func stopFile(service *bittorrent.Service) gin.HandlerFunc {
+	return func(ctx *gin.Context) {
+		onGetFile(ctx, service, func(file *bittorrent.File) {
+			file.SetPriority(bittorrent.DontDownloadPriority)
+			ctx.JSON(http.StatusOK, NewMessageResponse("stopped file '%d' download", file.Id()))
 		})
 	}
 }

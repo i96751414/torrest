@@ -40,8 +40,8 @@ func NewErrorResponse(err interface{}) *ErrorResponse {
 	return &r
 }
 
-func NewMessageResponse(a ...interface{}) *MessageResponse {
-	return &MessageResponse{Message: fmt.Sprint(a...)}
+func NewMessageResponse(format string, a ...interface{}) *MessageResponse {
+	return &MessageResponse{Message: fmt.Sprintf(format, a...)}
 }
 
 // @title Torrest API
@@ -83,6 +83,7 @@ func Routes(config *settings.Settings, service *bittorrent.Service) *gin.Engine 
 	torrentsRoutes.GET("/:infoHash/status", torrentStatus(service))
 	torrentsRoutes.GET("/:infoHash/files", torrentFiles(service))
 	torrentsRoutes.GET("/:infoHash/files/:file/download", downloadFile(config, service))
+	torrentsRoutes.GET("/:infoHash/files/:file/stop", stopFile(service))
 
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler,
 		ginSwagger.URL("/swagger/doc.json")))
