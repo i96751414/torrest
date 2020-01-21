@@ -43,3 +43,7 @@ func copyFileContents(src, dst string) (err error) {
 	}
 	return
 }
+
+func hasFlagsUint64(flags, f uint64) bool {
+	return flags&f == f
+}

@@ -199,7 +199,7 @@ func downloadFile(config *settings.Settings, service *bittorrent.Service) gin.Ha
 			if torrent, err := service.GetTorrent(infoHash); err == nil {
 				if torrent.HasMetadata() {
 					if file, err := torrent.GetFile(fileId); err == nil {
-						file.SetPriority(4)
+						file.SetPriority(bittorrent.DefaultPriority)
 						if ctx.DefaultQuery("buffer", "false") == "true" {
 							bufferSize := int64(float64(file.Length()) * startBufferPercent)
 							if bufferSize < config.BufferSize {

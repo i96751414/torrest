@@ -27,6 +27,15 @@ const (
 	BufferingStatus
 )
 
+//noinspection GoUnusedConst
+const (
+	DontDownloadPriority = uint(0)
+	LowPriority          = uint(1)
+	DefaultPriority      = uint(4)
+	HighPriority         = uint(6)
+	TopPriority          = uint(7)
+)
+
 type Torrent struct {
 	service      *Service
 	handle       libtorrent.TorrentHandle
@@ -74,7 +83,7 @@ func DecodeTorrentData(data []byte) (*TorrentFileRaw, error) {
 
 func NewTorrent(service *Service, handle libtorrent.TorrentHandle, infoHash string) *Torrent {
 	flags := handle.Flags()
-	paused := hasFlags(flags, libtorrent.GetPaused()) && !hasFlags(flags, libtorrent.GetAutoManaged())
+	paused := hasFlagsUint64(flags, libtorrent.GetPaused()) && !hasFlagsUint64(flags, libtorrent.GetAutoManaged())
 
 	return &Torrent{
 		service:  service,
@@ -111,6 +120,9 @@ func (t *Torrent) getState(file ...*File) LTStatus {
 			if f.isBuffering {
 				return BufferingStatus
 			}
+		}
+		if t.getFilesProgress(file...) == 100 {
+			return FinishedStatus
 		}
 	}
 	return state
@@ -231,6 +243,30 @@ func (t *Torrent) piecesBytesMissing(pieces []int) (missing int64) {
 	return
 }
 
+func (t *Torrent) getFilesProgress(file ...*File) float64 {
+	var total int64
+	var completed int64
+
+	progresses := t.getFilesDownloadedBytes()
+	for i, f := range file {
+		if f.IsDownloading() {
+			total += f.length
+			completed += progresses[i]
+		}
+	}
+
+	if total == 0 {
+		return 100
+	}
+
+	progress := float64(completed) / float64(total) * 100.0
+	if progress > 100 {
+		progress = 100
+	}
+
+	return progress
+}
+
 func (t *Torrent) checkAvailableSpace() {
 	if t.spaceChecked {
 		return
@@ -268,8 +304,4 @@ func (t *Torrent) checkAvailableSpace() {
 			t.spaceChecked = true
 		}
 	}
-}
-
-func hasFlags(flags, f uint64) bool {
-	return flags&f == f
 }
