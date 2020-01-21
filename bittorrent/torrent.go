@@ -101,7 +101,7 @@ func (t *Torrent) InfoHash() string {
 
 func (t *Torrent) Pause() {
 	t.handle.UnsetFlags(libtorrent.GetAutoManaged())
-	t.handle.Pause(1)
+	t.handle.Pause(libtorrent.TorrentHandleClearDiskCache)
 	t.isPaused = true
 }
 

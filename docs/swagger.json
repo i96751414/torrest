@@ -308,6 +308,39 @@
                 }
             }
         },
+        "/torrents/{infoHash}/pause": {
+            "get": {
+                "description": "pause torrent from service",
+                "produces": [
+                    "application/json"
+                ],
+                "summary": "Pause Torrent",
+                "operationId": "pause-torrent",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "torrent info hash",
+                        "name": "infoHash",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/api.MessageResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/torrents/{infoHash}/remove": {
             "get": {
                 "description": "remove torrent from service",
@@ -329,6 +362,39 @@
                         "description": "delete files",
                         "name": "delete",
                         "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/api.MessageResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/torrents/{infoHash}/resume": {
+            "get": {
+                "description": "resume a paused torrent",
+                "produces": [
+                    "application/json"
+                ],
+                "summary": "Resume Torrent",
+                "operationId": "resume-torrent",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "torrent info hash",
+                        "name": "infoHash",
+                        "in": "path",
+                        "required": true
                     }
                 ],
                 "responses": {

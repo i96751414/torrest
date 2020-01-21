@@ -131,6 +131,46 @@ func removeTorrent(service *bittorrent.Service) gin.HandlerFunc {
 	}
 }
 
+// @Summary Resume Torrent
+// @Description resume a paused torrent
+// @ID resume-torrent
+// @Produce json
+// @Param infoHash path string true "torrent info hash"
+// @Success 200 {object} MessageResponse
+// @Failure 404 {object} ErrorResponse
+// @Router /torrents/{infoHash}/resume [get]
+func resumeTorrent(service *bittorrent.Service) gin.HandlerFunc {
+	return func(ctx *gin.Context) {
+		infoHash := ctx.Param("infoHash")
+		if torrent, err := service.GetTorrent(infoHash); err == nil {
+			torrent.Resume()
+			ctx.JSON(http.StatusOK, MessageResponse{Message: fmt.Sprintf("Torrent '%s' resumed", infoHash)})
+		} else {
+			ctx.JSON(http.StatusNotFound, NewErrorResponse(err))
+		}
+	}
+}
+
+// @Summary Pause Torrent
+// @Description pause torrent from service
+// @ID pause-torrent
+// @Produce json
+// @Param infoHash path string true "torrent info hash"
+// @Success 200 {object} MessageResponse
+// @Failure 404 {object} ErrorResponse
+// @Router /torrents/{infoHash}/pause [get]
+func pauseTorrent(service *bittorrent.Service) gin.HandlerFunc {
+	return func(ctx *gin.Context) {
+		infoHash := ctx.Param("infoHash")
+		if torrent, err := service.GetTorrent(infoHash); err == nil {
+			torrent.Pause()
+			ctx.JSON(http.StatusOK, MessageResponse{Message: fmt.Sprintf("Torrent '%s' paused", infoHash)})
+		} else {
+			ctx.JSON(http.StatusNotFound, NewErrorResponse(err))
+		}
+	}
+}
+
 // @Summary Get Torrent Status
 // @Description get torrent status
 // @ID torrent-status

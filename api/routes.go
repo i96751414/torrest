@@ -65,6 +65,8 @@ func Routes(config *settings.Settings, service *bittorrent.Service) *gin.Engine 
 
 	torrentsRoutes := r.Group("/torrents")
 	torrentsRoutes.GET("/", listTorrents(service))
+	torrentsRoutes.GET("/:infoHash/pause", pauseTorrent(service))
+	torrentsRoutes.GET("/:infoHash/resume", resumeTorrent(service))
 	torrentsRoutes.GET("/:infoHash/remove", removeTorrent(service))
 	torrentsRoutes.GET("/:infoHash/status", torrentStatus(service))
 	torrentsRoutes.GET("/:infoHash/files", torrentFiles(service))
