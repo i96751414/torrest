@@ -308,6 +308,58 @@
                 }
             }
         },
+        "/torrents/{infoHash}/files/{file}/status": {
+            "get": {
+                "description": "get file status from torrent given its id",
+                "produces": [
+                    "application/json"
+                ],
+                "summary": "Get File Status",
+                "operationId": "file-status",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "torrent info hash",
+                        "name": "infoHash",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "file id",
+                        "name": "file",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/bittorrent.FileInfo"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/torrents/{infoHash}/files/{file}/stop": {
             "get": {
                 "description": "stop file download from torrent given its id",
@@ -568,6 +620,9 @@
                 },
                 "path": {
                     "type": "string"
+                },
+                "state": {
+                    "type": "integer"
                 }
             }
         },

@@ -254,6 +254,25 @@ func stopFile(service *bittorrent.Service) gin.HandlerFunc {
 	}
 }
 
+// @Summary Get File Status
+// @Description get file status from torrent given its id
+// @ID file-status
+// @Produce json
+// @Param infoHash path string true "torrent info hash"
+// @Param file path integer true "file id"
+// @Success 200 {object} bittorrent.FileInfo
+// @Failure 400 {object} ErrorResponse
+// @Failure 404 {object} ErrorResponse
+// @Failure 500 {object} ErrorResponse
+// @Router /torrents/{infoHash}/files/{file}/status [get]
+func fileStatus(service *bittorrent.Service) gin.HandlerFunc {
+	return func(ctx *gin.Context) {
+		onGetFile(ctx, service, func(file *bittorrent.File) {
+			ctx.JSON(http.StatusOK, file.Info())
+		})
+	}
+}
+
 func onGetTorrent(ctx *gin.Context, service *bittorrent.Service, f func(*bittorrent.Torrent)) {
 	infoHash := ctx.Param("infoHash")
 	if torrent, err := service.GetTorrent(infoHash); err == nil {

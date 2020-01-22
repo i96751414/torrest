@@ -22,10 +22,11 @@ type File struct {
 }
 
 type FileInfo struct {
-	Id     int    `json:"id"`
-	Length int64  `json:"length"`
-	Path   string `json:"path"`
-	Name   string `json:"name"`
+	Id     int      `json:"id"`
+	Length int64    `json:"length"`
+	Path   string   `json:"path"`
+	Name   string   `json:"name"`
+	State  LTStatus `json:"state"`
 }
 
 func NewFile(torrent *Torrent, storage libtorrent.FileStorage, index int) *File {
@@ -55,6 +56,7 @@ func (f *File) Info() *FileInfo {
 		Length: f.length,
 		Path:   f.path,
 		Name:   f.name,
+		State:  f.GetState(),
 	}
 }
 func (f *File) Id() int {
