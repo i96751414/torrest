@@ -17,6 +17,7 @@ type File struct {
 	pieceLength  int64
 	bufferPieces []int
 	bufferSize   int64
+	priority     uint
 	isBuffering  bool
 }
 
@@ -28,7 +29,7 @@ type FileInfo struct {
 }
 
 func NewFile(torrent *Torrent, storage libtorrent.FileStorage, index int) *File {
-	return &File{
+	f := &File{
 		torrent:     torrent,
 		index:       index,
 		offset:      storage.FileOffset(index),
@@ -36,7 +37,16 @@ func NewFile(torrent *Torrent, storage libtorrent.FileStorage, index int) *File 
 		path:        storage.FilePath(index),
 		name:        storage.FileName(index),
 		pieceLength: int64(torrent.TorrentInfo().PieceLength()),
+		priority:    torrent.handle.FilePriority(index).(uint),
 	}
+
+	if f.priority == 0 {
+		// Make sure we don't have individual pieces downloading
+		// previously set by Buffer
+		f.SetPriority(0)
+	}
+
+	return f
 }
 
 func (f *File) Info() *FileInfo {
@@ -107,15 +117,15 @@ func (f *File) BytesCompleted() int64 {
 }
 
 func (f *File) SetPriority(priority uint) {
+	f.priority = priority
+	if priority == 0 {
+		f.isBuffering = false
+	}
 	f.torrent.handle.FilePriority(f.index, priority)
 }
 
-func (f *File) GetPriority() uint {
-	return f.torrent.handle.FilePriority(f.index).(uint)
-}
-
 func (f *File) IsDownloading() bool {
-	return f.isBuffering || f.GetPriority() > 0
+	return f.isBuffering || f.priority != 0
 }
 
 func (f *File) addBufferPiece(piece int, info libtorrent.TorrentInfo) {
@@ -157,8 +167,8 @@ func (f *File) bufferBytesMissing() int64 {
 }
 
 func (f *File) GetBufferingProgress() float64 {
-	if f.bufferSize == 0 {
-		return 0
+	if f.bufferSize == 0 || !f.isBuffering {
+		return 100
 	}
 	return float64(f.bufferSize-f.bufferBytesMissing()) / float64(f.bufferSize) * 100.0
 }

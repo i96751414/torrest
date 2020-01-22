@@ -116,12 +116,16 @@ func (t *Torrent) getState(file ...*File) LTStatus {
 	}
 	state := LTStatus(t.handle.Status().GetState())
 	if state == DownloadingStatus {
+		downloading := false
 		for _, f := range file {
 			if f.isBuffering {
 				return BufferingStatus
 			}
+			if f.priority != 0 {
+				downloading = true
+			}
 		}
-		if t.getFilesProgress(file...) == 100 {
+		if !downloading || t.getFilesProgress(file...) == 100 {
 			return FinishedStatus
 		}
 	}
@@ -251,10 +255,8 @@ func (t *Torrent) getFilesProgress(file ...*File) float64 {
 
 	progresses := t.getFilesDownloadedBytes()
 	for i, f := range file {
-		if f.IsDownloading() {
-			total += f.length
-			completed += progresses[i]
-		}
+		total += f.length
+		completed += progresses[i]
 	}
 
 	if total == 0 {
