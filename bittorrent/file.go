@@ -22,11 +22,16 @@ type File struct {
 }
 
 type FileInfo struct {
-	Id     int      `json:"id"`
-	Length int64    `json:"length"`
-	Path   string   `json:"path"`
-	Name   string   `json:"name"`
-	State  LTStatus `json:"state"`
+	Id     int    `json:"id"`
+	Length int64  `json:"length"`
+	Path   string `json:"path"`
+	Name   string `json:"name"`
+}
+
+type FileStatus struct {
+	Progress          float64  `json:"progress"`
+	BufferingProgress float64  `json:"buffering_progress"`
+	State             LTStatus `json:"state"`
 }
 
 func NewFile(torrent *Torrent, storage libtorrent.FileStorage, index int) *File {
@@ -56,9 +61,17 @@ func (f *File) Info() *FileInfo {
 		Length: f.length,
 		Path:   f.path,
 		Name:   f.name,
-		State:  f.GetState(),
 	}
 }
+
+func (f *File) Status() *FileStatus {
+	return &FileStatus{
+		Progress:          f.GetProgress(),
+		BufferingProgress: f.GetBufferingProgress(),
+		State:             f.GetState(),
+	}
+}
+
 func (f *File) Id() int {
 	return f.index
 }
@@ -75,7 +88,7 @@ func (f *File) Name() string {
 	return f.name
 }
 
-func (f *File) NewReader() (Reader, error) {
+func (f *File) NewReader() (*reader, error) {
 	file, err := os.Open(f.GetDownloadPath())
 	if err != nil {
 		return nil, err
@@ -87,13 +100,15 @@ func (f *File) NewReader() (Reader, error) {
 	}
 
 	return &reader{
-		storage:        file,
-		torrent:        f.torrent,
-		offset:         f.offset,
-		length:         f.length,
-		pieceLength:    f.pieceLength,
-		priorityPieces: int(float64(f.length/f.pieceLength) * 0.01),
-		closing:        make(chan interface{}),
+		storage:         file,
+		torrent:         f.torrent,
+		offset:          f.offset,
+		length:          f.length,
+		pieceLength:     f.pieceLength,
+		priorityPieces:  int(float64(f.length/f.pieceLength) * 0.01),
+		closing:         make(chan interface{}),
+		defaultPriority: &f.priority,
+		currentPiece:    -1,
 	}, nil
 }
 
@@ -112,6 +127,10 @@ func (f *File) getPiecesIndexes(off, length int64) (firstPieceIndex, endPieceInd
 	firstPieceIndex = int((f.offset + off) / f.pieceLength)
 	endPieceIndex = int((f.offset + end) / f.pieceLength)
 	return
+}
+
+func (f *File) GetProgress() float64 {
+	return 100 * float64(f.BytesCompleted()) / float64(f.length)
 }
 
 func (f *File) BytesCompleted() int64 {
@@ -140,10 +159,9 @@ func (f *File) addBufferPiece(piece int, info libtorrent.TorrentInfo) {
 func (f *File) Buffer(startBufferSize, endBufferSize int64) {
 	f.bufferSize = 0
 	f.bufferPieces = nil
-	bufferSize := startBufferSize + endBufferSize
 	info := f.torrent.TorrentInfo()
 
-	if f.length >= bufferSize {
+	if f.length >= startBufferSize+endBufferSize {
 		aFirstPieceIndex, aEndPieceIndex := f.getPiecesIndexes(0, startBufferSize)
 		for idx := aFirstPieceIndex; idx <= aEndPieceIndex; idx++ {
 			f.addBufferPiece(idx, info)

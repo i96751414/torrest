@@ -46,6 +46,13 @@ definitions:
         type: string
       path:
         type: string
+    type: object
+  bittorrent.FileStatus:
+    properties:
+      buffering_progress:
+        type: number
+      progress:
+        type: number
       state:
         type: integer
     type: object
@@ -367,6 +374,73 @@ paths:
           schema:
             $ref: '#/definitions/api.ErrorResponse'
       summary: Download File
+  /torrents/{infoHash}/files/{file}/info:
+    get:
+      description: get file info from torrent given its id
+      operationId: file-info
+      parameters:
+      - description: torrent info hash
+        in: path
+        name: infoHash
+        required: true
+        type: string
+      - description: file id
+        in: path
+        name: file
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/bittorrent.FileInfo'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      summary: Get File Info
+  /torrents/{infoHash}/files/{file}/serve:
+    get:
+      description: serve file from torrent given its id
+      operationId: serve-file
+      parameters:
+      - description: torrent info hash
+        in: path
+        name: infoHash
+        required: true
+        type: string
+      - description: file id
+        in: path
+        name: file
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200": {}
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      summary: Serve File
   /torrents/{infoHash}/files/{file}/status:
     get:
       description: get file status from torrent given its id
@@ -388,7 +462,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/bittorrent.FileInfo'
+            $ref: '#/definitions/bittorrent.FileStatus'
         "400":
           description: Bad Request
           schema:

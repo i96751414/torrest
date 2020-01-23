@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/i96751414/torrest/bittorrent"
@@ -254,9 +255,9 @@ func stopFile(service *bittorrent.Service) gin.HandlerFunc {
 	}
 }
 
-// @Summary Get File Status
-// @Description get file status from torrent given its id
-// @ID file-status
+// @Summary Get File Info
+// @Description get file info from torrent given its id
+// @ID file-info
 // @Produce json
 // @Param infoHash path string true "torrent info hash"
 // @Param file path integer true "file id"
@@ -264,11 +265,57 @@ func stopFile(service *bittorrent.Service) gin.HandlerFunc {
 // @Failure 400 {object} ErrorResponse
 // @Failure 404 {object} ErrorResponse
 // @Failure 500 {object} ErrorResponse
+// @Router /torrents/{infoHash}/files/{file}/info [get]
+func fileInfo(service *bittorrent.Service) gin.HandlerFunc {
+	return func(ctx *gin.Context) {
+		onGetFile(ctx, service, func(file *bittorrent.File) {
+			ctx.JSON(http.StatusOK, file.Info())
+		})
+	}
+}
+
+// @Summary Get File Status
+// @Description get file status from torrent given its id
+// @ID file-status
+// @Produce json
+// @Param infoHash path string true "torrent info hash"
+// @Param file path integer true "file id"
+// @Success 200 {object} bittorrent.FileStatus
+// @Failure 400 {object} ErrorResponse
+// @Failure 404 {object} ErrorResponse
+// @Failure 500 {object} ErrorResponse
 // @Router /torrents/{infoHash}/files/{file}/status [get]
 func fileStatus(service *bittorrent.Service) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		onGetFile(ctx, service, func(file *bittorrent.File) {
-			ctx.JSON(http.StatusOK, file.Info())
+			ctx.JSON(http.StatusOK, file.Status())
+		})
+	}
+}
+
+// @Summary Serve File
+// @Description serve file from torrent given its id
+// @ID serve-file
+// @Produce json
+// @Param infoHash path string true "torrent info hash"
+// @Param file path integer true "file id"
+// @Success 200
+// @Failure 400 {object} ErrorResponse
+// @Failure 404 {object} ErrorResponse
+// @Failure 500 {object} ErrorResponse
+// @Router /torrents/{infoHash}/files/{file}/serve [get]
+func serveFile(service *bittorrent.Service) gin.HandlerFunc {
+	return func(ctx *gin.Context) {
+		onGetFile(ctx, service, func(file *bittorrent.File) {
+			if reader, err := file.NewReader(); err == nil {
+				reader.RegisterCloseNotifier(ctx.Writer.CloseNotify())
+				http.ServeContent(ctx.Writer, ctx.Request, file.Name(), time.Time{}, reader)
+				if err := reader.Close(); err != nil {
+					log.Errorf("Error closing file reader: %s\n", err)
+				}
+			} else {
+				ctx.JSON(http.StatusInternalServerError, NewErrorResponse(err))
+			}
 		})
 	}
 }

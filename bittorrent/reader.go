@@ -7,6 +7,7 @@ import (
 
 const (
 	piecesRefreshDuration = 500 * time.Millisecond
+	waitForPieceTimeout   = 60 * time.Second
 )
 
 type Reader interface {
@@ -16,35 +17,52 @@ type Reader interface {
 }
 
 type reader struct {
-	storage        Reader
-	torrent        *Torrent
-	offset         int64
-	length         int64
-	pieceLength    int64
-	priorityPieces int
-	closing        chan interface{}
+	storage         Reader
+	torrent         *Torrent
+	offset          int64
+	length          int64
+	pieceLength     int64
+	priorityPieces  int
+	closing         chan interface{}
+	defaultPriority *uint
+	currentPiece    int
+	closeNotifiers  []<-chan bool
 }
 
-func (r *reader) waitForPiece(piece int) error {
-	if r.torrent.handle.HavePiece(piece) {
-		return nil
-	}
+func (r *reader) RegisterCloseNotifier(n <-chan bool) {
+	r.closeNotifiers = append(r.closeNotifiers, n)
+}
 
-	log.Infof("Waiting for piece %d", piece)
+func (r *reader) waitForPiece(piece int, timeout time.Duration) error {
+	log.Debugf("Waiting for piece %d", piece)
 
+	startTime := time.Now()
 	pieceRefreshTicker := time.NewTicker(piecesRefreshDuration)
 	defer pieceRefreshTicker.Stop()
 
 	for !r.torrent.handle.HavePiece(piece) {
 		select {
+		case <-r.torrent.service.closing:
+			return ServiceClosedError
 		case <-r.torrent.closing:
-			log.Warningf("Unable to wait for piece %d as torrent was closed", piece)
 			return TorrentClosedError
 		case <-r.closing:
-			log.Warningf("Unable to wait for piece %d as file was closed", piece)
-			return FileClosedError
+			return ReaderClosedError
 		case <-pieceRefreshTicker.C:
-			continue
+			if timeout != 0 && time.Since(startTime) >= timeout {
+				log.Warningf("Timed out waiting for piece %d with priority %v",
+					piece, r.torrent.handle.PiecePriority(piece))
+				return TimeoutError
+			}
+
+			for _, n := range r.closeNotifiers {
+				select {
+				case <-n:
+					return ReaderCloseNotifyError
+				default:
+					// do nothing
+				}
+			}
 		}
 	}
 	return nil
@@ -63,10 +81,22 @@ func (r *reader) Read(b []byte) (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	// TODO: Check all the pieces
-	piece := r.pieceFromOffset(currentOffset + int64(len(b)))
-	if err := r.waitForPiece(piece); err != nil {
-		return 0, err
+
+	lastPiece := r.pieceFromOffset(currentOffset + int64(len(b)))
+	for p := r.pieceFromOffset(currentOffset); p <= lastPiece; p++ {
+		if !r.torrent.handle.HavePiece(p) {
+			// Try to avoid setting piece priorities multiple times
+			if p != r.currentPiece {
+				r.setPiecesPriorities(p)
+			}
+			if err := r.waitForPiece(p, waitForPieceTimeout); err != nil {
+				return 0, err
+			}
+		}
+		// Prepare for the next piece
+		if p == r.currentPiece {
+			r.currentPiece++
+		}
 	}
 
 	return r.storage.Read(b)
@@ -75,6 +105,25 @@ func (r *reader) Read(b []byte) (int, error) {
 func (r *reader) Close() error {
 	close(r.closing)
 	return r.storage.Close()
+}
+
+func (r *reader) setPiecesPriorities(piece int) {
+	log.Debugf("We don't have piece %d, setting piece priorities", piece)
+	r.currentPiece = piece
+	p := r.pieceFromOffset(0)
+	deadline := 0
+	for ; p < piece; p++ {
+		r.torrent.handle.PiecePriority(p, *r.defaultPriority)
+		r.torrent.handle.ResetPieceDeadline(p)
+	}
+	for ; p <= piece+r.priorityPieces; p, deadline = p+1, deadline+1 {
+		r.torrent.handle.PiecePriority(p, TopPriority)
+		r.torrent.handle.SetPieceDeadline(p, deadline)
+	}
+	for ; p <= r.pieceFromOffset(r.length); p++ {
+		r.torrent.handle.PiecePriority(p, HighPriority)
+		r.torrent.handle.ResetPieceDeadline(p)
+	}
 }
 
 func (r *reader) Seek(off int64, whence int) (int64, error) {
@@ -97,23 +146,7 @@ func (r *reader) Seek(off int64, whence int) (int64, error) {
 
 	piece := r.pieceFromOffset(seekingOffset)
 	if !r.torrent.handle.HavePiece(piece) {
-		log.Infof("We don't have piece %d, setting piece priorities", piece)
-		p := r.pieceFromOffset(0)
-		deadline := 0
-		for ; p < piece; p++ {
-			// TODO: make sure download keeps going after seek operations
-			// TODO: If we have a file priority > 0, we need to re set these pieces
-			r.torrent.handle.PiecePriority(p, DontDownloadPriority)
-			r.torrent.handle.ResetPieceDeadline(p)
-		}
-		for ; p <= piece+r.priorityPieces; p, deadline = p+1, deadline+1 {
-			r.torrent.handle.PiecePriority(p, TopPriority)
-			r.torrent.handle.SetPieceDeadline(p, deadline)
-		}
-		for ; p <= r.pieceFromOffset(r.length); p++ {
-			r.torrent.handle.PiecePriority(p, HighPriority)
-			r.torrent.handle.ResetPieceDeadline(p)
-		}
+		r.setPiecesPriorities(piece)
 	}
 
 	return r.storage.Seek(off, whence)

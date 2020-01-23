@@ -476,10 +476,11 @@ func (s *Service) stopServices() {
 	s.session.ApplySettings(s.settingsPack)
 }
 
-func (s *Service) addTorrentWithParams(torrentParams libtorrent.AddTorrentParams, infoHash string, shouldStart bool) error {
-	torrentParams.SetSavePath(s.config.DownloadPath)
-
-	if !shouldStart {
+func (s *Service) addTorrentWithParams(torrentParams libtorrent.AddTorrentParams, infoHash string, isResumeData bool) error {
+	if !isResumeData {
+		torrentParams.SetSavePath(s.config.DownloadPath)
+		torrentParams.SetStorageMode(libtorrent.StorageModeAllocate)
+		torrentParams.SetFlags(libtorrent.GetSequentialDownload())
 		// Make sure we do not download anything yet
 		filesPriorities := libtorrent.NewStdVectorChar()
 		defer libtorrent.DeleteStdVectorChar(filesPriorities)
@@ -792,6 +793,7 @@ func (s *Service) RemoveTorrent(infoHash string, removeFiles bool) error {
 		}
 		s.session.RemoveTorrent(torrent.handle, flags)
 		s.torrents = append(s.torrents[:index], s.torrents[index+1:]...)
+		close(torrent.closing)
 	}
 
 	return err
