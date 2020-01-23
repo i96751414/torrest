@@ -126,13 +126,6 @@ func (r *reader) setPiecePriority(piece int, deadline int, priority uint) {
 }
 
 func (r *reader) setPiecesPriorities(piece int, pieceEndOffset int) {
-	if piece < r.firstPiece {
-		piece = r.firstPiece
-	}
-	if pieceEndOffset < 0 {
-		pieceEndOffset = 0
-	}
-
 	endPiece := piece + pieceEndOffset + r.priorityPieces
 	for p, i := piece, 0; p <= endPiece && p <= r.lastPiece; p, i = p+1, i+1 {
 		if !r.torrent.handle.HavePiece(p) {
