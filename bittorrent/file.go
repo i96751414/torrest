@@ -96,20 +96,10 @@ func (f *File) NewReader() (*reader, error) {
 	// make sure we don't open a file that's locked, as it can happen
 	// on BSD systems (darwin included)
 	if err := unlockFile(file); err != nil {
-		log.Errorf("Unable to unlock file because: %s", err)
+		log.Errorf("Unable to unlock file: %s", err)
 	}
 
-	return &reader{
-		storage:         file,
-		torrent:         f.torrent,
-		offset:          f.offset,
-		length:          f.length,
-		pieceLength:     f.pieceLength,
-		priorityPieces:  int(float64(f.length/f.pieceLength) * 0.01),
-		closing:         make(chan interface{}),
-		defaultPriority: &f.priority,
-		currentPiece:    -1,
-	}, nil
+	return newReader(file, f.torrent, f.offset, f.length, f.pieceLength, 0.01), nil
 }
 
 func (f *File) GetDownloadPath() string {
