@@ -119,7 +119,7 @@ func (r *reader) Close() error {
 }
 
 func (r *reader) setPiecePriority(piece int, deadline int, priority uint) {
-	if r.torrent.handle.PiecePriority(piece).(uint) != priority {
+	if r.torrent.handle.PiecePriority(piece).(uint) < priority {
 		r.torrent.handle.PiecePriority(piece, priority)
 		r.torrent.handle.SetPieceDeadline(piece, deadline)
 	}
