@@ -23,7 +23,7 @@ var log = logging.MustGetLogger("bittorrent")
 
 const (
 	libtorrentAlertWaitTime = time.Second
-	libtorrentProgressTime  = 1
+	libtorrentProgressTime  = time.Second
 	maxFilesPerTorrent      = 1000
 )
 
@@ -54,6 +54,7 @@ type ServiceStatus struct {
 	Progress     float64 `json:"progress"`
 	DownloadRate int64   `json:"download_rate"`
 	UploadRate   int64   `json:"upload_rate"`
+	NumTorrents  int     `json:"num_torrents"`
 }
 
 // NewService creates a service given the provided configs
@@ -638,7 +639,7 @@ func (s *Service) loadTorrentFiles() {
 }
 
 func (s *Service) downloadProgress() {
-	progressTicker := time.NewTicker(libtorrentProgressTime * time.Second)
+	progressTicker := time.NewTicker(libtorrentProgressTime)
 	defer progressTicker.Stop()
 
 	for {
@@ -750,6 +751,7 @@ func (s *Service) GetStatus() *ServiceStatus {
 		Progress:     s.progress,
 		DownloadRate: s.downloadRate,
 		UploadRate:   s.uploadRate,
+		NumTorrents:  len(s.torrents),
 	}
 }
 

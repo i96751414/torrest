@@ -2,8 +2,6 @@ package api
 
 import (
 	"fmt"
-	"net/http"
-
 	"github.com/gin-gonic/gin"
 	"github.com/i96751414/torrest/bittorrent"
 	_ "github.com/i96751414/torrest/docs"
@@ -14,10 +12,6 @@ import (
 )
 
 var log = logging.MustGetLogger("api")
-
-type StatusResponse struct {
-	Status string `json:"status" example:"ok"`
-}
 
 type ErrorResponse struct {
 	Error string `json:"error" example:"Houston, we have a problem!"`
@@ -65,7 +59,7 @@ func Routes(config *settings.Settings, service *bittorrent.Service) *gin.Engine 
 	r.Use(gin.Recovery())
 	r.Use(gin.LoggerWithWriter(gin.DefaultWriter))
 
-	r.GET("/status", status)
+	r.GET("/status", status(service))
 
 	addRoute := r.Group("/add")
 	addRoute.GET("/magnet", addMagnet(service))
@@ -92,16 +86,4 @@ func Routes(config *settings.Settings, service *bittorrent.Service) *gin.Engine 
 		ginSwagger.URL("/swagger/doc.json")))
 
 	return r
-}
-
-// @Summary Status
-// @Description check server status
-// @ID status
-// @Produce  json
-// @Success 200 {object} StatusResponse
-// @Router /status [get]
-func status(ctx *gin.Context) {
-	ctx.JSON(http.StatusOK, &StatusResponse{
-		Status: "ok",
-	})
 }

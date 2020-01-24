@@ -12,7 +12,7 @@ import (
 // @Summary Get current settings
 // @Description get settings in JSON object
 // @ID get-settings
-// @Produce  json
+// @Produce json
 // @Success 200 {object} settings.Settings
 // @Router /settings/get [get]
 func getSettings(config *settings.Settings) gin.HandlerFunc {
@@ -24,8 +24,8 @@ func getSettings(config *settings.Settings) gin.HandlerFunc {
 // @Summary Set settings
 // @Description set settings given the provided JSON object
 // @ID set-settings
-// @Accept  json
-// @Produce  json
+// @Accept json
+// @Produce json
 // @Param default body settings.Settings false "Settings to be set"
 // @Success 200 {object} settings.Settings
 // @Failure 500 {object} ErrorResponse

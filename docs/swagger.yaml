@@ -22,12 +22,6 @@ definitions:
         example: 000102030405060708090a0b0c0d0e0f10111213
         type: string
     type: object
-  api.StatusResponse:
-    properties:
-      status:
-        example: ok
-        type: string
-    type: object
   api.TorrentInfoResponse:
     properties:
       info_hash:
@@ -54,6 +48,17 @@ definitions:
       progress:
         type: number
       state:
+        type: integer
+    type: object
+  bittorrent.ServiceStatus:
+    properties:
+      download_rate:
+        type: integer
+      num_torrents:
+        type: integer
+      progress:
+        type: number
+      upload_rate:
         type: integer
     type: object
   bittorrent.TorrentStatus:
@@ -280,7 +285,7 @@ paths:
       summary: Shutdown
   /status:
     get:
-      description: check server status
+      description: get service status
       operationId: status
       produces:
       - application/json
@@ -288,7 +293,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/api.StatusResponse'
+            $ref: '#/definitions/bittorrent.ServiceStatus'
       summary: Status
   /torrents:
     get:

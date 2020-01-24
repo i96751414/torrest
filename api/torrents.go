@@ -1,15 +1,10 @@
 package api
 
 import (
-	"mime/multipart"
 	"net/http"
-	"strconv"
-	"strings"
-	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/i96751414/torrest/bittorrent"
-	"github.com/i96751414/torrest/settings"
 )
 
 const (
@@ -26,64 +21,6 @@ type FileInfoResponse []*bittorrent.FileInfo
 type TorrentInfoResponse struct {
 	InfoHash string                    `json:"info_hash"`
 	Status   *bittorrent.TorrentStatus `json:"status,omitempty"`
-}
-
-// @Summary Add Magnet
-// @Description add magnet to service
-// @ID add-magnet
-// @Produce json
-// @Param uri query string true "magnet URI"
-// @Success 200 {object} NewTorrentResponse
-// @Failure 400 {object} ErrorResponse
-// @Failure 500 {object} ErrorResponse
-// @Router /add/magnet [get]
-func addMagnet(service *bittorrent.Service) gin.HandlerFunc {
-	return func(ctx *gin.Context) {
-		magnet := ctx.Query("uri")
-		if !strings.HasPrefix(magnet, "magnet:") {
-			ctx.JSON(http.StatusBadRequest, NewErrorResponse("Invalid magnet provided"))
-			return
-		}
-		if infoHash, err := service.AddMagnet(magnet); err == nil {
-			ctx.JSON(http.StatusOK, NewTorrentResponse{InfoHash: infoHash})
-		} else {
-			ctx.JSON(http.StatusInternalServerError, NewErrorResponse(err))
-		}
-	}
-}
-
-// @Summary Add Torrent File
-// @Description add torrent file to service
-// @ID add-torrent
-// @Accept multipart/form-data
-// @Produce json
-// @Param torrent formData file true "torrent file"
-// @Success 200 {object} NewTorrentResponse
-// @Failure 400 {object} ErrorResponse
-// @Failure 500 {object} ErrorResponse
-// @Router /add/torrent [post]
-func addTorrent(service *bittorrent.Service) gin.HandlerFunc {
-	return func(ctx *gin.Context) {
-		if f, err := ctx.FormFile("torrent"); err == nil {
-			var err error
-			var infoHash string
-			var file multipart.File
-
-			if file, err = f.Open(); err == nil {
-				data := make([]byte, f.Size)
-				if _, err = file.Read(data); err == nil {
-					if infoHash, err = service.AddTorrentData(data); err == nil {
-						ctx.JSON(http.StatusOK, NewTorrentResponse{InfoHash: infoHash})
-						return
-					}
-				}
-			}
-
-			ctx.JSON(http.StatusInternalServerError, NewErrorResponse(err))
-		} else {
-			ctx.JSON(http.StatusBadRequest, NewErrorResponse(err))
-		}
-	}
 }
 
 // @Summary List Torrents
@@ -207,143 +144,11 @@ func torrentFiles(service *bittorrent.Service) gin.HandlerFunc {
 	}
 }
 
-// @Summary Download File
-// @Description download file from torrent given its id
-// @ID download-file
-// @Produce json
-// @Param infoHash path string true "torrent info hash"
-// @Param file path integer true "file id"
-// @Param buffer query boolean false "buffer file"
-// @Success 200 {object} MessageResponse
-// @Failure 400 {object} ErrorResponse
-// @Failure 404 {object} ErrorResponse
-// @Failure 500 {object} ErrorResponse
-// @Router /torrents/{infoHash}/files/{file}/download [get]
-func downloadFile(config *settings.Settings, service *bittorrent.Service) gin.HandlerFunc {
-	return func(ctx *gin.Context) {
-		onGetFile(ctx, service, func(file *bittorrent.File) {
-			file.SetPriority(bittorrent.DefaultPriority)
-			if ctx.DefaultQuery("buffer", "false") == "true" {
-				bufferSize := int64(float64(file.Length()) * startBufferPercent)
-				if bufferSize < config.BufferSize {
-					bufferSize = config.BufferSize
-				}
-				file.Buffer(bufferSize, endBufferSize)
-			}
-			ctx.JSON(http.StatusOK, NewMessageResponse("file '%d' is downloading", file.Id()))
-		})
-	}
-}
-
-// @Summary Stop File Download
-// @Description stop file download from torrent given its id
-// @ID stop-file
-// @Produce json
-// @Param infoHash path string true "torrent info hash"
-// @Param file path integer true "file id"
-// @Success 200 {object} MessageResponse
-// @Failure 400 {object} ErrorResponse
-// @Failure 404 {object} ErrorResponse
-// @Failure 500 {object} ErrorResponse
-// @Router /torrents/{infoHash}/files/{file}/stop [get]
-func stopFile(service *bittorrent.Service) gin.HandlerFunc {
-	return func(ctx *gin.Context) {
-		onGetFile(ctx, service, func(file *bittorrent.File) {
-			file.SetPriority(bittorrent.DontDownloadPriority)
-			ctx.JSON(http.StatusOK, NewMessageResponse("stopped file '%d' download", file.Id()))
-		})
-	}
-}
-
-// @Summary Get File Info
-// @Description get file info from torrent given its id
-// @ID file-info
-// @Produce json
-// @Param infoHash path string true "torrent info hash"
-// @Param file path integer true "file id"
-// @Success 200 {object} bittorrent.FileInfo
-// @Failure 400 {object} ErrorResponse
-// @Failure 404 {object} ErrorResponse
-// @Failure 500 {object} ErrorResponse
-// @Router /torrents/{infoHash}/files/{file}/info [get]
-func fileInfo(service *bittorrent.Service) gin.HandlerFunc {
-	return func(ctx *gin.Context) {
-		onGetFile(ctx, service, func(file *bittorrent.File) {
-			ctx.JSON(http.StatusOK, file.Info())
-		})
-	}
-}
-
-// @Summary Get File Status
-// @Description get file status from torrent given its id
-// @ID file-status
-// @Produce json
-// @Param infoHash path string true "torrent info hash"
-// @Param file path integer true "file id"
-// @Success 200 {object} bittorrent.FileStatus
-// @Failure 400 {object} ErrorResponse
-// @Failure 404 {object} ErrorResponse
-// @Failure 500 {object} ErrorResponse
-// @Router /torrents/{infoHash}/files/{file}/status [get]
-func fileStatus(service *bittorrent.Service) gin.HandlerFunc {
-	return func(ctx *gin.Context) {
-		onGetFile(ctx, service, func(file *bittorrent.File) {
-			ctx.JSON(http.StatusOK, file.Status())
-		})
-	}
-}
-
-// @Summary Serve File
-// @Description serve file from torrent given its id
-// @ID serve-file
-// @Produce json
-// @Param infoHash path string true "torrent info hash"
-// @Param file path integer true "file id"
-// @Success 200
-// @Failure 400 {object} ErrorResponse
-// @Failure 404 {object} ErrorResponse
-// @Failure 500 {object} ErrorResponse
-// @Router /torrents/{infoHash}/files/{file}/serve [get]
-func serveFile(service *bittorrent.Service) gin.HandlerFunc {
-	return func(ctx *gin.Context) {
-		onGetFile(ctx, service, func(file *bittorrent.File) {
-			if reader, err := file.NewReader(); err == nil {
-				reader.RegisterCloseNotifier(ctx.Writer.CloseNotify())
-				http.ServeContent(ctx.Writer, ctx.Request, file.Name(), time.Time{}, reader)
-				if err := reader.Close(); err != nil {
-					log.Errorf("Error closing file reader: %s\n", err)
-				}
-			} else {
-				ctx.JSON(http.StatusInternalServerError, NewErrorResponse(err))
-			}
-		})
-	}
-}
-
 func onGetTorrent(ctx *gin.Context, service *bittorrent.Service, f func(*bittorrent.Torrent)) {
 	infoHash := ctx.Param("infoHash")
 	if torrent, err := service.GetTorrent(infoHash); err == nil {
 		f(torrent)
 	} else {
 		ctx.JSON(http.StatusNotFound, NewErrorResponse(err))
-	}
-}
-
-func onGetFile(ctx *gin.Context, service *bittorrent.Service, f func(*bittorrent.File)) {
-	fileString := ctx.Param("file")
-	if fileId, err := strconv.Atoi(fileString); err == nil {
-		onGetTorrent(ctx, service, func(torrent *bittorrent.Torrent) {
-			if torrent.HasMetadata() {
-				if file, err := torrent.GetFile(fileId); err == nil {
-					f(file)
-				} else {
-					ctx.JSON(http.StatusBadRequest, NewErrorResponse(err))
-				}
-			} else {
-				ctx.JSON(http.StatusInternalServerError, NewErrorResponse("no metadata"))
-			}
-		})
-	} else {
-		ctx.JSON(http.StatusBadRequest, NewErrorResponse("'file' must be integer"))
 	}
 }
