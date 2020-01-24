@@ -851,7 +851,7 @@
                 "listen_interfaces": {
                     "type": "string"
                 },
-                "lower_listen_port": {
+                "listen_port": {
                     "type": "integer",
                     "example": 6889
                 },
@@ -893,10 +893,6 @@
                 "tuned_storage": {
                     "type": "boolean",
                     "example": false
-                },
-                "upper_listen_port": {
-                    "type": "integer",
-                    "example": 7000
                 },
                 "user_agent": {
                     "type": "integer",

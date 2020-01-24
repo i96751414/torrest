@@ -4,22 +4,24 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"io/ioutil"
+	"os"
+	"path/filepath"
+	"regexp"
+	"strings"
+	"sync"
+	"time"
+
 	"github.com/i96751414/libtorrent-go"
 	"github.com/i96751414/torrest/settings"
 	"github.com/i96751414/torrest/util"
 	"github.com/op/go-logging"
-	"io/ioutil"
-	"math/rand"
-	"os"
-	"path/filepath"
-	"regexp"
-	"strconv"
-	"strings"
-	"sync"
-	"time"
 )
 
-var log = logging.MustGetLogger("bittorrent")
+var (
+	log       = logging.MustGetLogger("bittorrent")
+	portRegex = regexp.MustCompile(`:\d+$`)
+)
 
 const (
 	libtorrentAlertWaitTime = time.Second
@@ -377,36 +379,24 @@ func (s *Service) configure() {
 			libtorrent.AlertErrorNotification))
 
 	// Start services
-	var listenPorts []string
-	for p := s.config.LowerListenPort; p <= s.config.UpperListenPort; p++ {
-		listenPorts = append(listenPorts, strconv.Itoa(p))
-	}
-	if len(listenPorts) == 0 {
-		panic("Invalid LowerListenPort/UpperListenPort configuration")
-	}
-
 	var listenInterfaces []string
-	interfaces := strings.TrimSpace(s.config.ListenInterfaces)
-	if interfaces != "" {
-		listenInterfaces = strings.Split(strings.Replace(interfaces, " ", "", -1), ",")
+	if interfaces := strings.Replace(s.config.ListenInterfaces, " ", "", -1); interfaces != "" {
+		listenInterfaces = strings.Split(interfaces, ",")
 	} else {
-		listenInterfaces = []string{"0.0.0.0"}
+		listenInterfaces = []string{"0.0.0.0", "[::]"}
 	}
 
-	// TODO: properly do this
-	rand.Seed(time.Now().UTC().UnixNano())
 	var listenInterfacesStrings []string
 	for _, listenInterface := range listenInterfaces {
-		listenInterfacesStrings = append(listenInterfacesStrings, listenInterface+":"+listenPorts[rand.Intn(len(listenPorts))])
-		if len(listenPorts) > 1 {
-			listenInterfacesStrings = append(listenInterfacesStrings, listenInterface+":"+listenPorts[rand.Intn(len(listenPorts))])
+		if !portRegex.MatchString(listenInterface) {
+			listenInterface = fmt.Sprintf("%s:%d", listenInterface, s.config.ListenPort)
 		}
+		listenInterfacesStrings = append(listenInterfacesStrings, listenInterface)
 	}
 	s.settingsPack.SetStr("listen_interfaces", strings.Join(listenInterfacesStrings, ","))
 
-	outgoingInterfaces := strings.TrimSpace(s.config.OutgoingInterfaces)
-	if outgoingInterfaces != "" {
-		s.settingsPack.SetStr("outgoing_interfaces", strings.Replace(outgoingInterfaces, " ", "", -1))
+	if outInterfaces := strings.Replace(s.config.OutgoingInterfaces, " ", "", -1); outInterfaces != "" {
+		s.settingsPack.SetStr("outgoing_interfaces", outInterfaces)
 	}
 
 	log.Info("Starting LSD...")

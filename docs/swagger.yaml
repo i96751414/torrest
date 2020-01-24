@@ -134,7 +134,7 @@ definitions:
         type: boolean
       listen_interfaces:
         type: string
-      lower_listen_port:
+      listen_port:
         example: 6889
         type: integer
       max_download_rate:
@@ -166,9 +166,6 @@ definitions:
       tuned_storage:
         example: false
         type: boolean
-      upper_listen_port:
-        example: 7000
-        type: integer
       user_agent:
         example: 0
         type: integer

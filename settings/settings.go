@@ -59,8 +59,7 @@ type ProxySettings struct {
 type Settings struct {
 	settingsPath string `json:"-"`
 
-	LowerListenPort     int              `json:"lower_listen_port" example:"6889"`
-	UpperListenPort     int              `json:"upper_listen_port" example:"7000"`
+	ListenPort          uint             `json:"listen_port" example:"6889"`
 	ListenInterfaces    string           `json:"listen_interfaces" example:""`
 	OutgoingInterfaces  string           `json:"outgoing_interfaces" example:""`
 	DisableDHT          bool             `json:"disable_dht" example:"false"`
@@ -85,8 +84,7 @@ type Settings struct {
 func DefaultSettings() *Settings {
 	return &Settings{
 		settingsPath:        "settings.json",
-		LowerListenPort:     6889,
-		UpperListenPort:     7000,
+		ListenPort:          6889,
 		ListenInterfaces:    "",
 		OutgoingInterfaces:  "",
 		DisableDHT:          false,
