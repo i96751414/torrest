@@ -84,6 +84,8 @@ else ifeq ($(TARGET_OS), android)
 		GOARM =
 	endif
 	GO_LDFLAGS = -linkmode=external -extldflags=-pie -extld=$(CC)
+	CC := $(CROSS_ROOT)/bin/$(CROSS_TRIPLE)-clang
+	CXX := $(CROSS_ROOT)/bin/$(CROSS_TRIPLE)-clang++
 endif
 
 DOCKER_GOPATH = "/go"
@@ -116,10 +118,13 @@ $(BUILD_PATH):
 	mkdir -p $(BUILD_PATH)
 
 $(BUILD_PATH)/$(OUTPUT_NAME): $(BUILD_PATH) force
-	LDFLAGS='$(LDFLAGS)' \
-	CC='$(CC)' CXX='$(CXX)' \
-	GOOS='$(GOOS)' GOARCH='$(GOARCH)' GOARM='$(GOARM)' \
-	CGO_ENABLED='$(CGO_ENABLED)' \
+	export LDFLAGS='$(LDFLAGS)'; \
+	export CC='$(CC)'; \
+	export CXX='$(CXX)'; \
+	export GOOS='$(GOOS)'; \
+	export GOARCH='$(GOARCH)'; \
+	export GOARM='$(GOARM)'; \
+	export CGO_ENABLED='$(CGO_ENABLED)'; \
 	$(GO) build -v \
 		-gcflags '$(GO_GCFLAGS)' \
 		-ldflags '$(GO_LDFLAGS)' \
@@ -134,13 +139,13 @@ vendor_windows:
 	find "$(GOPATH)/pkg/$(GOOS)_$(GOARCH)" -name *.dll -exec cp -f {} $(BUILD_PATH) \;
 
 vendor_android:
-	cp $(CROSS_ROOT)/$(CROSS_TRIPLE)/lib/libgnustl_shared.so $(BUILD_PATH)
-	chmod +rx $(BUILD_PATH)/libgnustl_shared.so
+	cp $(CROSS_ROOT)/sysroot/usr/lib/$(CROSS_TRIPLE)/libc++_shared.so $(BUILD_PATH)
+	chmod +rx $(BUILD_PATH)/libc++_shared.so
 
 vendor_libs_windows:
 
 vendor_libs_android:
-	$(CROSS_ROOT)/arm-linux-androideabi/lib/libgnustl_shared.so
+	$(CROSS_ROOT)/sysroot/usr/lib/$(CROSS_TRIPLE)/libc++_shared.so
 
 torrest: $(BUILD_PATH)/$(OUTPUT_NAME)
 
