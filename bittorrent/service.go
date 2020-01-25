@@ -484,9 +484,11 @@ func (s *Service) addTorrentWithParams(torrentParams libtorrent.AddTorrentParams
 	if _, _, e := s.getTorrent(infoHash); e == nil {
 		return DuplicateTorrentError
 	} else {
-		torrentHandle := s.session.AddTorrent(torrentParams)
-		if torrentHandle == nil || !torrentHandle.IsValid() {
-			log.Errorf("Error adding torrent '%s'", infoHash)
+		errorCode := libtorrent.NewErrorCode()
+		defer libtorrent.DeleteErrorCode(errorCode)
+		torrentHandle := s.session.AddTorrent(torrentParams, errorCode)
+		if torrentHandle == nil || !torrentHandle.IsValid() || errorCode.Failed() {
+			log.Errorf("Error adding torrent '%s': %v", infoHash, errorCode.Message())
 			return LoadTorrentError
 		} else {
 			s.torrents = append(s.torrents, NewTorrent(s, torrentHandle, infoHash))
