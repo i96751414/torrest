@@ -115,10 +115,13 @@ force:
 libtorrent-go: force
 	$(MAKE) -C $(LIBTORRENT_GO_HOME) $(PLATFORM)
 
+libtorrent-go-defines:
+	$(MAKE) -C $(LIBTORRENT_GO_HOME) defines
+
 $(BUILD_PATH):
 	mkdir -p $(BUILD_PATH)
 
-$(BUILD_PATH)/$(OUTPUT_NAME): $(BUILD_PATH) force
+$(BUILD_PATH)/$(OUTPUT_NAME): libtorrent-go-defines $(BUILD_PATH) force
 	export LDFLAGS='$(LDFLAGS)'; \
 	export CC='$(CC)'; \
 	export CXX='$(CXX)'; \
