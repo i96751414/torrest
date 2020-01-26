@@ -17,6 +17,7 @@ LIBTORRENT_GO = github.com/i96751414/libtorrent-go
 #GO_LDFLAGS += -w -X $(GO_PKG)/util.Version="$(GIT_VERSION)"
 PLATFORMS = \
 	android-arm \
+	android-arm64 \
 	android-x64 \
 	android-x86 \
 	darwin-x64 \
