@@ -50,7 +50,7 @@ func main() {
 	}
 
 	log.Info("Starting bittorrent service")
-	service := bittorrent.NewService(config.Clone())
+	service := bittorrent.NewService(config)
 	defer service.Close()
 
 	m.Handle("/", api.Routes(config, service))

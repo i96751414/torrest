@@ -62,7 +62,7 @@ type ServiceStatus struct {
 // NewService creates a service given the provided configs
 func NewService(config *settings.Settings) *Service {
 	s := &Service{
-		config:  config,
+		config:  config.Clone(),
 		mu:      &sync.RWMutex{},
 		closing: make(chan interface{}),
 	}
@@ -71,7 +71,6 @@ func NewService(config *settings.Settings) *Service {
 	createDir(s.config.TorrentsPath)
 
 	s.configure()
-	s.loadTorrentFiles()
 
 	go s.saveResumeDataLoop()
 	go s.alertsConsumer()
@@ -162,12 +161,12 @@ func (s *Service) onMetadataReceived(alert libtorrent.MetadataReceivedAlert) {
 	log.Debugf("Saving %s.torrent", infoHash)
 	torrentInfo := torrentHandle.TorrentFile()
 	torrentFile := libtorrent.NewCreateTorrent(torrentInfo)
+	defer libtorrent.DeleteCreateTorrent(torrentFile)
 	torrentContent := torrentFile.Generate()
 	bEncodedTorrent := []byte(libtorrent.Bencode(torrentContent))
 	if err := ioutil.WriteFile(s.torrentPath(infoHash), bEncodedTorrent, 0644); err != nil {
 		log.Errorf("Failed saving '%s.torrent': %s", infoHash, err)
 	}
-	libtorrent.DeleteCreateTorrent(torrentFile)
 }
 
 func (s *Service) onStateChanged(alert libtorrent.StateChangedAlert) {
@@ -183,6 +182,7 @@ func (s *Service) onStateChanged(alert libtorrent.StateChangedAlert) {
 }
 
 func (s *Service) saveResumeDataLoop() {
+	// TODO: allow this to be reconfigured
 	saveResumeWait := time.NewTicker(time.Duration(s.config.SessionSave) * time.Second)
 	defer saveResumeWait.Stop()
 
@@ -206,20 +206,21 @@ func (s *Service) saveResumeDataLoop() {
 }
 
 func (s *Service) Close() {
+	defer libtorrent.DeleteSession(s.session)
 	log.Info("Stopping Service...")
-	s.stopServices()
+	s.reset()
 	close(s.closing)
-	libtorrent.DeleteSession(s.session)
 }
 
 func (s *Service) Reconfigure(config *settings.Settings) {
-	s.stopServices()
-	s.config = config
+	s.reset()
+	s.config = config.Clone()
 	s.configure()
-	s.loadTorrentFiles()
 }
 
 func (s *Service) configure() {
+	defer s.loadTorrentFiles()
+
 	s.torrents = nil
 	s.settingsPack = libtorrent.NewSettingsPack()
 
@@ -447,7 +448,9 @@ func (s *Service) setBufferingRateLimit(enable bool) {
 	}
 }
 
-func (s *Service) stopServices() {
+func (s *Service) reset() {
+	defer libtorrent.DeleteSettingsPack(s.settingsPack)
+
 	log.Debug("Stopping LSD...")
 	s.settingsPack.SetBool("enable_lsd", false)
 

@@ -44,7 +44,7 @@ func setSettings(config *settings.Settings, service *bittorrent.Service) gin.Han
 		if err := config.Save(); err != nil {
 			log.Errorf("Failed saving settings: %s", err)
 		}
-		service.Reconfigure(config.Clone())
+		service.Reconfigure(config)
 		ctx.JSON(http.StatusOK, config)
 	}
 }
