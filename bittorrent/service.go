@@ -20,6 +20,7 @@ import (
 
 var (
 	log       = logging.MustGetLogger("bittorrent")
+	alertsLog = logging.MustGetLogger("alerts")
 	portRegex = regexp.MustCompile(`:\d+$`)
 )
 
@@ -117,13 +118,13 @@ func (s *Service) alertsConsumer() {
 
 				// log alerts
 				if category&libtorrent.AlertErrorNotification != 0 {
-					log.Errorf("%s: %s", what, alertMessage)
+					alertsLog.Errorf("%s: %s", what, alertMessage)
 				} else if category&libtorrent.AlertConnectNotification != 0 {
-					log.Debugf("%s: %s", what, alertMessage)
+					alertsLog.Debugf("%s: %s", what, alertMessage)
 				} else if category&libtorrent.AlertPerformanceWarning != 0 {
-					log.Warningf("%s: %s", what, alertMessage)
+					alertsLog.Warningf("%s: %s", what, alertMessage)
 				} else {
-					log.Noticef("%s: %s", what, alertMessage)
+					alertsLog.Noticef("%s: %s", what, alertMessage)
 				}
 			}
 			libtorrent.DeleteStdVectorAlerts(alerts)
@@ -440,7 +441,7 @@ func (s *Service) setBufferingRateLimit(enable bool) {
 				s.settingsPack.SetInt("upload_rate_limit", s.config.MaxUploadRate)
 			}
 		} else {
-			log.Debugf("Resetting rate limiting")
+			log.Debug("Resetting rate limiting")
 			s.settingsPack.SetInt("download_rate_limit", 0)
 			s.settingsPack.SetInt("upload_rate_limit", 0)
 		}
