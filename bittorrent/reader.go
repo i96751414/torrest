@@ -10,14 +10,14 @@ const (
 	waitForPieceTimeout   = 60 * time.Second
 )
 
-type Reader interface {
+type Storage interface {
 	io.Reader
 	io.Seeker
 	io.Closer
 }
 
 type reader struct {
-	storage        Reader
+	storage        Storage
 	torrent        *Torrent
 	offset         int64
 	length         int64
@@ -29,7 +29,7 @@ type reader struct {
 	closeNotifiers []<-chan bool
 }
 
-func newReader(storage Reader, torrent *Torrent, offset, length, pieceLength int64, readAhead float64) *reader {
+func newReader(storage Storage, torrent *Torrent, offset, length, pieceLength int64, readAhead float64) *reader {
 	r := &reader{
 		storage:        storage,
 		torrent:        torrent,
