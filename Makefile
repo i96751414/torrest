@@ -6,15 +6,16 @@ PROJECT = i96751414
 NAME = torrest
 GO_PKG = github.com/i96751414/torrest
 GO = go
-GIT = git
 DOCKER = docker
 DOCKER_IMAGE = libtorrent-go
 UPX = upx
-GIT_VERSION = $(shell $(GIT) describe --tags)
 CGO_ENABLED = 1
 BUILD_DIR = build
 LIBTORRENT_GO = github.com/i96751414/libtorrent-go
-#GO_LDFLAGS += -w -X $(GO_PKG)/util.Version="$(GIT_VERSION)"
+GIT = git
+GIT_VERSION = $(shell $(GIT) describe --tags)
+# Use development for now - TODO: use git tags
+GO_LDFLAGS += -w -X $(GO_PKG)/util.Version="development"
 PLATFORMS = \
 	android-arm \
 	android-arm64 \
