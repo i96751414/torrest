@@ -82,7 +82,6 @@ func NewService(config *settings.Settings) *Service {
 
 func (s *Service) alertsConsumer() {
 	ipRegex := regexp.MustCompile(`\.\d+`)
-	log.Info("Consuming alerts...")
 	for {
 		select {
 		case <-s.closing:
@@ -160,7 +159,7 @@ func (s *Service) onMetadataReceived(alert libtorrent.MetadataReceivedAlert) {
 	infoHash := hex.EncodeToString([]byte(torrentStatus.GetInfoHash().ToString()))
 
 	// Save .torrent
-	log.Infof("Saving %s.torrent", infoHash)
+	log.Debugf("Saving %s.torrent", infoHash)
 	torrentInfo := torrentHandle.TorrentFile()
 	torrentFile := libtorrent.NewCreateTorrent(torrentInfo)
 	torrentContent := torrentFile.Generate()
@@ -307,11 +306,11 @@ func (s *Service) configure() {
 
 	if !s.config.LimitAfterBuffering {
 		if s.config.MaxDownloadRate > 0 {
-			log.Infof("Rate limiting download to %dkB/s", s.config.MaxDownloadRate/1024)
+			log.Debugf("Rate limiting download to %dkB/s", s.config.MaxDownloadRate/1024)
 			s.settingsPack.SetInt("download_rate_limit", s.config.MaxDownloadRate)
 		}
 		if s.config.MaxUploadRate > 0 {
-			log.Infof("Rate limiting upload to %dkB/s", s.config.MaxUploadRate/1024)
+			log.Debugf("Rate limiting upload to %dkB/s", s.config.MaxUploadRate/1024)
 			// If we have an upload rate, use the nicer bittyrant choker
 			s.settingsPack.SetInt("upload_rate_limit", s.config.MaxUploadRate)
 			s.settingsPack.SetInt("choking_algorithm", int(libtorrent.SettingsPackBittyrantChoker))
@@ -328,8 +327,9 @@ func (s *Service) configure() {
 		s.settingsPack.SetInt("seed_time_limit", s.config.SeedTimeLimit)
 	}
 
-	log.Info("Applying encryption settings...")
-	if s.config.EncryptionPolicy == settings.EncryptionDisabledPolicy || s.config.EncryptionPolicy == settings.EncryptionForcedPolicy {
+	if s.config.EncryptionPolicy == settings.EncryptionDisabledPolicy ||
+		s.config.EncryptionPolicy == settings.EncryptionForcedPolicy {
+		log.Debug("Applying encryption settings...")
 		var policy int
 		var level int
 		var preferRc4 bool
@@ -354,7 +354,7 @@ func (s *Service) configure() {
 	}
 
 	if s.config.Proxy != nil && s.config.Proxy.Type != settings.ProxyTypeNone {
-		log.Info("Applying proxy settings...")
+		log.Debug("Applying proxy settings...")
 		s.settingsPack.SetInt("proxy_type", s.config.Proxy.Type)
 		s.settingsPack.SetInt("proxy_port", s.config.Proxy.Port)
 		s.settingsPack.SetStr("proxy_hostname", s.config.Proxy.Hostname)
@@ -399,11 +399,11 @@ func (s *Service) configure() {
 		s.settingsPack.SetStr("outgoing_interfaces", outInterfaces)
 	}
 
-	log.Info("Starting LSD...")
+	log.Debug("Starting LSD...")
 	s.settingsPack.SetBool("enable_lsd", true)
 
 	if !s.config.DisableDHT {
-		log.Info("Starting DHT...")
+		log.Debug("Starting DHT...")
 		s.settingsPack.SetStr("dht_bootstrap_nodes", strings.Join([]string{
 			"router.utorrent.com:6881",
 			"router.bittorrent.com:6881",
@@ -416,10 +416,10 @@ func (s *Service) configure() {
 	}
 
 	if !s.config.DisableUPNP {
-		log.Info("Starting UPNP...")
+		log.Debug("Starting UPNP...")
 		s.settingsPack.SetBool("enable_upnp", true)
 
-		log.Info("Starting NATPMP...")
+		log.Debug("Starting NATPMP...")
 		s.settingsPack.SetBool("enable_natpmp", true)
 	}
 
@@ -430,16 +430,16 @@ func (s *Service) setBufferingRateLimit(enable bool) {
 	if s.config.LimitAfterBuffering {
 		if enable {
 			if s.config.MaxDownloadRate > 0 {
-				log.Infof("Buffer filled, rate limiting download to %dkB/s", s.config.MaxDownloadRate/1024)
+				log.Debugf("Buffer filled, rate limiting download to %dkB/s", s.config.MaxDownloadRate/1024)
 				s.settingsPack.SetInt("download_rate_limit", s.config.MaxDownloadRate)
 			}
 			if s.config.MaxUploadRate > 0 {
 				// If we have an upload rate, use the nicer bittyrant choker
-				log.Infof("Buffer filled, rate limiting upload to %dkB/s", s.config.MaxUploadRate/1024)
+				log.Debugf("Buffer filled, rate limiting upload to %dkB/s", s.config.MaxUploadRate/1024)
 				s.settingsPack.SetInt("upload_rate_limit", s.config.MaxUploadRate)
 			}
 		} else {
-			log.Info("Resetting rate limiting")
+			log.Debugf("Resetting rate limiting")
 			s.settingsPack.SetInt("download_rate_limit", 0)
 			s.settingsPack.SetInt("upload_rate_limit", 0)
 		}
@@ -448,19 +448,19 @@ func (s *Service) setBufferingRateLimit(enable bool) {
 }
 
 func (s *Service) stopServices() {
-	log.Info("Stopping LSD...")
+	log.Debug("Stopping LSD...")
 	s.settingsPack.SetBool("enable_lsd", false)
 
 	if !s.config.DisableDHT {
-		log.Info("Stopping DHT...")
+		log.Debug("Stopping DHT...")
 		s.settingsPack.SetBool("enable_dht", false)
 	}
 
 	if !s.config.DisableUPNP {
-		log.Info("Stopping UPNP...")
+		log.Debug("Stopping UPNP...")
 		s.settingsPack.SetBool("enable_upnp", false)
 
-		log.Info("Stopping NATPMP...")
+		log.Debug("Stopping NATPMP...")
 		s.settingsPack.SetBool("enable_natpmp", false)
 	}
 
@@ -568,7 +568,7 @@ func (s *Service) AddTorrentFile(torrentFile string) (infoHash string, err error
 	if err == nil {
 		torrentDst := s.torrentPath(infoHash)
 		if fi2, e := os.Stat(torrentDst); e != nil || !os.SameFile(fi, fi2) {
-			log.Infof("Copying torrent %s", infoHash)
+			log.Debugf("Copying torrent %s", infoHash)
 			if err := copyFileContents(torrentFile, torrentDst); err != nil {
 				log.Errorf("Failed copying torrent: %s", err)
 			}
@@ -620,11 +620,11 @@ func (s *Service) loadTorrentFiles() {
 		}
 	}
 
-	log.Info("Cleaning up stale .parts files...")
 	partsFiles, _ := filepath.Glob(filepath.Join(s.config.DownloadPath, "*.parts"))
 	for _, partsFile := range partsFiles {
 		infoHash := strings.TrimPrefix(strings.TrimSuffix(filepath.Base(partsFile), ".parts"), ".")
 		if _, _, err := s.getTorrent(infoHash); err != nil {
+			log.Debugf("Cleaning up stale parts file '%s'", partsFiles)
 			deleteFile(partsFile)
 		}
 	}
@@ -693,7 +693,7 @@ func (s *Service) downloadProgress() {
 
 				if s.config.SeedTimeLimit > 0 {
 					if seedingTime >= s.config.SeedTimeLimit {
-						log.Warningf("Seeding time limit reached, pausing %s", torrentStatus.GetName())
+						log.Infof("Seeding time limit reached, pausing %s", torrentStatus.GetName())
 						t.Pause()
 						continue
 					}
@@ -702,7 +702,7 @@ func (s *Service) downloadProgress() {
 					if downloadTime := torrentStatus.GetActiveDuration() - seedingTime; downloadTime > 1 {
 						timeRatio := seedingTime * 100 / downloadTime
 						if timeRatio >= s.config.SeedTimeRatioLimit {
-							log.Warningf("Seeding time ratio reached, pausing %s", torrentStatus.GetName())
+							log.Infof("Seeding time ratio reached, pausing %s", torrentStatus.GetName())
 							t.Pause()
 							continue
 						}
@@ -712,7 +712,7 @@ func (s *Service) downloadProgress() {
 					if allTimeDownload := torrentStatus.GetAllTimeDownload(); allTimeDownload > 0 {
 						ratio := torrentStatus.GetAllTimeUpload() * 100 / allTimeDownload
 						if ratio >= int64(s.config.ShareRatioLimit) {
-							log.Warningf("Share ratio reached, pausing %s", torrentStatus.GetName())
+							log.Infof("Share ratio reached, pausing %s", torrentStatus.GetName())
 							t.Pause()
 						}
 					}
