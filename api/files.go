@@ -1,6 +1,7 @@
 package api
 
 import (
+	"github.com/i96751414/torrest/util"
 	"net/http"
 	"strconv"
 	"time"
@@ -9,6 +10,10 @@ import (
 	"github.com/i96751414/torrest/bittorrent"
 	"github.com/i96751414/torrest/settings"
 )
+
+type FileHash struct {
+	Hash string `json:"hash"`
+}
 
 // @Summary Download File
 // @Description download file from torrent given its id
@@ -92,6 +97,36 @@ func fileStatus(service *bittorrent.Service) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		onGetFile(ctx, service, func(file *bittorrent.File) {
 			ctx.JSON(http.StatusOK, file.Status())
+		})
+	}
+}
+
+// @Summary Calculate file hash
+// @Description calculate file hash suitable for opensubtitles
+// @ID file-hash
+// @Produce json
+// @Param infoHash path string true "torrent info hash"
+// @Param file path integer true "file id"
+// @Success 200 {object} FileHash
+// @Failure 400 {object} ErrorResponse
+// @Failure 404 {object} ErrorResponse
+// @Failure 500 {object} ErrorResponse
+// @Router /torrents/{infoHash}/files/{file}/hash [get]
+func fileHash(service *bittorrent.Service) gin.HandlerFunc {
+	return func(ctx *gin.Context) {
+		onGetFile(ctx, service, func(file *bittorrent.File) {
+			if reader, err := file.NewReader(); err == nil {
+				if hash, err := util.HashFile(reader, file.Length()); err == nil {
+					ctx.JSON(http.StatusOK, FileHash{Hash: hash})
+				} else {
+					ctx.JSON(http.StatusInternalServerError, NewErrorResponse(err))
+				}
+				if err := reader.Close(); err != nil {
+					log.Errorf("Error closing file reader: %s\n", err)
+				}
+			} else {
+				ctx.JSON(http.StatusInternalServerError, NewErrorResponse(err))
+			}
 		})
 	}
 }

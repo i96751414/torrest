@@ -80,6 +80,7 @@ func Routes(config *settings.Settings, service *bittorrent.Service) *gin.Engine 
 	torrentsRoutes.GET("/:infoHash/files/:file/stop", stopFile(service))
 	torrentsRoutes.GET("/:infoHash/files/:file/info", fileInfo(service))
 	torrentsRoutes.GET("/:infoHash/files/:file/status", fileStatus(service))
+	torrentsRoutes.GET("/:infoHash/files/:file/hash", fileHash(service))
 	torrentsRoutes.Any("/:infoHash/files/:file/serve", serveFile(service))
 
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler,
