@@ -1,7 +1,6 @@
 package bittorrent
 
 import (
-	"os"
 	"path/filepath"
 
 	"github.com/i96751414/libtorrent-go"
@@ -89,17 +88,7 @@ func (f *File) Name() string {
 }
 
 func (f *File) NewReader() (*reader, error) {
-	file, err := os.Open(f.GetDownloadPath())
-	if err != nil {
-		return nil, err
-	}
-	// make sure we don't open a file that's locked, as it can happen
-	// on BSD systems (darwin included)
-	if err := unlockFile(file); err != nil {
-		log.Errorf("Unable to unlock file: %s", err)
-	}
-
-	return newReader(file, f.torrent, f.offset, f.length, f.pieceLength, 0.01), nil
+	return newReader(f.torrent, f.offset, f.length, f.pieceLength, 0.01), nil
 }
 
 func (f *File) GetDownloadPath() string {
