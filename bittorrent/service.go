@@ -62,22 +62,24 @@ type ServiceStatus struct {
 
 // NewService creates a service given the provided configs
 func NewService(config *settings.Settings) *Service {
-	s := &Service{
-		config:  config.Clone(),
-		mu:      &sync.RWMutex{},
-		closing: make(chan interface{}),
-	}
+	s := &Service{mu: &sync.RWMutex{}}
+	s.start(config)
+	return s
+}
+
+func (s *Service) start(config *settings.Settings) {
+	s.config = config.Clone()
+	s.closing = make(chan interface{})
 
 	createDir(s.config.DownloadPath)
 	createDir(s.config.TorrentsPath)
 
 	s.configure()
+	s.loadTorrentFiles()
 
 	go s.saveResumeDataLoop()
 	go s.alertsConsumer()
 	go s.downloadProgress()
-
-	return s
 }
 
 func (s *Service) alertsConsumer() {
@@ -183,15 +185,11 @@ func (s *Service) onStateChanged(alert libtorrent.StateChangedAlert) {
 }
 
 func (s *Service) saveResumeDataLoop() {
-	// TODO: allow this to be reconfigured
-	saveResumeWait := time.NewTicker(time.Duration(s.config.SessionSave) * time.Second)
-	defer saveResumeWait.Stop()
-
 	for {
 		select {
 		case <-s.closing:
 			return
-		case <-saveResumeWait.C:
+		case <-time.After(time.Duration(s.config.SessionSave) * time.Second):
 			s.mu.Lock()
 			for _, torrent := range s.torrents {
 				if torrent.handle.IsValid() {
@@ -207,21 +205,16 @@ func (s *Service) saveResumeDataLoop() {
 }
 
 func (s *Service) Close() {
-	defer libtorrent.DeleteSession(s.session)
 	log.Info("Stopping Service...")
 	s.reset()
-	close(s.closing)
 }
 
 func (s *Service) Reconfigure(config *settings.Settings) {
 	s.reset()
-	s.config = config.Clone()
-	s.configure()
+	s.start(config)
 }
 
 func (s *Service) configure() {
-	defer s.loadTorrentFiles()
-
 	s.torrents = nil
 	s.settingsPack = libtorrent.NewSettingsPack()
 
@@ -450,7 +443,9 @@ func (s *Service) setBufferingRateLimit(enable bool) {
 }
 
 func (s *Service) reset() {
+	defer libtorrent.DeleteSession(s.session)
 	defer libtorrent.DeleteSettingsPack(s.settingsPack)
+	defer close(s.closing)
 
 	log.Debug("Stopping LSD...")
 	s.settingsPack.SetBool("enable_lsd", false)
@@ -474,7 +469,7 @@ func (s *Service) reset() {
 func (s *Service) addTorrentWithParams(torrentParams libtorrent.AddTorrentParams, infoHash string, isResumeData bool) error {
 	if !isResumeData {
 		torrentParams.SetSavePath(s.config.DownloadPath)
-		torrentParams.SetStorageMode(libtorrent.StorageModeAllocate)
+		// torrentParams.SetStorageMode(libtorrent.StorageModeAllocate)
 		torrentParams.SetFlags(libtorrent.GetSequentialDownload())
 		// Make sure we do not download anything yet
 		filesPriorities := libtorrent.NewStdVectorChar()
