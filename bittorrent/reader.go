@@ -14,12 +14,6 @@ const (
 	waitForPieceTimeout   = 60 * time.Second
 )
 
-type Storage interface {
-	io.Reader
-	io.Seeker
-	io.Closer
-}
-
 type reader struct {
 	mu             *sync.Mutex
 	storage        libtorrent.StorageInterface
