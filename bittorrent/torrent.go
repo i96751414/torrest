@@ -203,6 +203,12 @@ func (t *Torrent) GetFile(id int) (*File, error) {
 	return files[id], nil
 }
 
+func (t *Torrent) SetPriority(priority uint) {
+	for _, f := range t.Files() {
+		f.SetPriority(priority)
+	}
+}
+
 func (t *Torrent) getFilesDownloadedBytes() []int64 {
 	pVec := libtorrent.NewStdVectorSizeType()
 	defer libtorrent.DeleteStdVectorSizeType(pVec)
