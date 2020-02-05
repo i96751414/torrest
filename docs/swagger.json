@@ -97,6 +97,42 @@
                 }
             }
         },
+        "/pause": {
+            "get": {
+                "description": "pause service",
+                "produces": [
+                    "application/json"
+                ],
+                "summary": "Pause",
+                "operationId": "pause",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/api.MessageResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/resume": {
+            "get": {
+                "description": "resume service",
+                "produces": [
+                    "application/json"
+                ],
+                "summary": "Resume",
+                "operationId": "resume",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/api.MessageResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/settings/get": {
             "get": {
                 "description": "get settings in JSON object",
@@ -831,6 +867,9 @@
             "properties": {
                 "download_rate": {
                     "type": "integer"
+                },
+                "is_paused": {
+                    "type": "boolean"
                 },
                 "num_torrents": {
                     "type": "integer"

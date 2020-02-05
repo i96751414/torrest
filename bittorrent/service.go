@@ -58,6 +58,7 @@ type ServiceStatus struct {
 	DownloadRate int64   `json:"download_rate"`
 	UploadRate   int64   `json:"upload_rate"`
 	NumTorrents  int     `json:"num_torrents"`
+	IsPaused     bool    `json:"is_paused"`
 }
 
 // NewService creates a service given the provided configs
@@ -735,6 +736,14 @@ func (s *Service) downloadProgress() {
 	}
 }
 
+func (s *Service) Pause() {
+	s.session.Pause()
+}
+
+func (s *Service) Resume() {
+	s.session.Resume()
+}
+
 func (s *Service) GetStatus() *ServiceStatus {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -743,6 +752,7 @@ func (s *Service) GetStatus() *ServiceStatus {
 		DownloadRate: s.downloadRate,
 		UploadRate:   s.uploadRate,
 		NumTorrents:  len(s.torrents),
+		IsPaused:     s.session.IsPaused(),
 	}
 }
 

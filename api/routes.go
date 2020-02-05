@@ -60,6 +60,8 @@ func Routes(config *settings.Settings, service *bittorrent.Service) *gin.Engine 
 	r.Use(gin.LoggerWithWriter(gin.DefaultWriter))
 
 	r.GET("/status", status(service))
+	r.GET("/pause", pause(service))
+	r.GET("/resume", resume(service))
 
 	addRoute := r.Group("/add")
 	addRoute.GET("/magnet", addMagnet(service))

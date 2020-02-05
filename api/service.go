@@ -21,6 +21,32 @@ func status(service *bittorrent.Service) gin.HandlerFunc {
 	}
 }
 
+// @Summary Pause
+// @Description pause service
+// @ID pause
+// @Produce json
+// @Success 200 {object} MessageResponse
+// @Router /pause [get]
+func pause(service *bittorrent.Service) gin.HandlerFunc {
+	return func(ctx *gin.Context) {
+		service.Pause()
+		ctx.JSON(http.StatusOK, NewMessageResponse("service paused"))
+	}
+}
+
+// @Summary Resume
+// @Description resume service
+// @ID resume
+// @Produce json
+// @Success 200 {object} MessageResponse
+// @Router /resume [get]
+func resume(service *bittorrent.Service) gin.HandlerFunc {
+	return func(ctx *gin.Context) {
+		service.Resume()
+		ctx.JSON(http.StatusOK, NewMessageResponse("service resumed"))
+	}
+}
+
 // @Summary Add Magnet
 // @Description add magnet to service
 // @ID add-magnet

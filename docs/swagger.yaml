@@ -59,6 +59,8 @@ definitions:
     properties:
       download_rate:
         type: integer
+      is_paused:
+        type: boolean
       num_torrents:
         type: integer
       progress:
@@ -241,6 +243,30 @@ paths:
           schema:
             $ref: '#/definitions/api.ErrorResponse'
       summary: Add Torrent File
+  /pause:
+    get:
+      description: pause service
+      operationId: pause
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.MessageResponse'
+      summary: Pause
+  /resume:
+    get:
+      description: resume service
+      operationId: resume
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.MessageResponse'
+      summary: Resume
   /settings/get:
     get:
       description: get settings in JSON object
