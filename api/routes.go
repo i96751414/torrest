@@ -58,6 +58,7 @@ func Routes(config *settings.Settings, service *bittorrent.Service) *gin.Engine 
 	r := gin.New()
 	r.Use(gin.Recovery())
 	r.Use(gin.LoggerWithWriter(gin.DefaultWriter))
+	r.Use(CORSMiddleware())
 
 	r.GET("/status", status(service))
 	r.GET("/pause", pause(service))
@@ -90,4 +91,11 @@ func Routes(config *settings.Settings, service *bittorrent.Service) *gin.Engine 
 		ginSwagger.URL("/swagger/doc.json")))
 
 	return r
+}
+
+func CORSMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
+		c.Next()
+	}
 }

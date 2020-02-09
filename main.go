@@ -87,6 +87,7 @@ func shutdown(cancel context.CancelFunc) func(w http.ResponseWriter, r *http.Req
 		switch r.Method {
 		case http.MethodGet:
 			cancel()
+			w.Header().Set("Access-Control-Allow-Origin", "*")
 		default:
 			w.WriteHeader(http.StatusNotFound)
 		}
