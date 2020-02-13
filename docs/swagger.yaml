@@ -50,6 +50,8 @@ definitions:
     properties:
       buffering_progress:
         type: number
+      priority:
+        type: integer
       progress:
         type: number
       state:

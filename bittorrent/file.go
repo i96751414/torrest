@@ -29,6 +29,7 @@ type FileInfo struct {
 
 type FileStatus struct {
 	Progress          float64  `json:"progress"`
+	Priority          uint     `json:"priority"`
 	BufferingProgress float64  `json:"buffering_progress"`
 	State             LTStatus `json:"state"`
 }
@@ -66,6 +67,7 @@ func (f *File) Info() *FileInfo {
 func (f *File) Status() *FileStatus {
 	return &FileStatus{
 		Progress:          f.GetProgress(),
+		Priority:          f.priority,
 		BufferingProgress: f.GetBufferingProgress(),
 		State:             f.GetState(),
 	}
