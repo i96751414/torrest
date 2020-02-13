@@ -166,6 +166,28 @@ func downloadTorrent(service *bittorrent.Service) gin.HandlerFunc {
 	}
 }
 
+// @Summary Stop Download
+// @Description stop downloading torrent
+// @ID stop-torrent
+// @Produce json
+// @Param infoHash path string true "torrent info hash"
+// @Success 200 {object} MessageResponse
+// @Failure 404 {object} ErrorResponse
+// @Failure 500 {object} ErrorResponse
+// @Router /torrents/{infoHash}/stop [get]
+func stopTorrent(service *bittorrent.Service) gin.HandlerFunc {
+	return func(ctx *gin.Context) {
+		onGetTorrent(ctx, service, func(torrent *bittorrent.Torrent) {
+			if torrent.HasMetadata() {
+				torrent.SetPriority(bittorrent.DontDownloadPriority)
+				ctx.JSON(http.StatusOK, NewMessageResponse("stopped torrent '%s' download", torrent.InfoHash()))
+			} else {
+				ctx.JSON(http.StatusInternalServerError, NewErrorResponse("no metadata"))
+			}
+		})
+	}
+}
+
 func onGetTorrent(ctx *gin.Context, service *bittorrent.Service, f func(*bittorrent.Torrent)) {
 	infoHash := ctx.Param("infoHash")
 	if torrent, err := service.GetTorrent(infoHash); err == nil {

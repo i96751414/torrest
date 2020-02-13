@@ -80,6 +80,7 @@ func Routes(config *settings.Settings, service *bittorrent.Service) *gin.Engine 
 	torrentsRoutes.GET("/:infoHash/status", torrentStatus(service))
 	torrentsRoutes.GET("/:infoHash/files", torrentFiles(service))
 	torrentsRoutes.GET("/:infoHash/download", downloadTorrent(service))
+	torrentsRoutes.GET("/:infoHash/stop", stopTorrent(service))
 	torrentsRoutes.GET("/:infoHash/files/:file/download", downloadFile(config, service))
 	torrentsRoutes.GET("/:infoHash/files/:file/stop", stopFile(service))
 	torrentsRoutes.GET("/:infoHash/files/:file/info", fileInfo(service))
