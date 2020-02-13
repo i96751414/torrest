@@ -428,10 +428,6 @@ paths:
           description: Not Found
           schema:
             $ref: '#/definitions/api.ErrorResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/api.ErrorResponse'
       summary: Download File
   /torrents/{infoHash}/files/{file}/hash:
     get:
@@ -498,10 +494,6 @@ paths:
           description: Not Found
           schema:
             $ref: '#/definitions/api.ErrorResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/api.ErrorResponse'
       summary: Get File Info
   /torrents/{infoHash}/files/{file}/serve:
     get:
@@ -528,10 +520,6 @@ paths:
             $ref: '#/definitions/api.ErrorResponse'
         "404":
           description: Not Found
-          schema:
-            $ref: '#/definitions/api.ErrorResponse'
-        "500":
-          description: Internal Server Error
           schema:
             $ref: '#/definitions/api.ErrorResponse'
       summary: Serve File
@@ -565,10 +553,6 @@ paths:
           description: Not Found
           schema:
             $ref: '#/definitions/api.ErrorResponse'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/api.ErrorResponse'
       summary: Get File Status
   /torrents/{infoHash}/files/{file}/stop:
     get:
@@ -598,10 +582,6 @@ paths:
             $ref: '#/definitions/api.ErrorResponse'
         "404":
           description: Not Found
-          schema:
-            $ref: '#/definitions/api.ErrorResponse'
-        "500":
-          description: Internal Server Error
           schema:
             $ref: '#/definitions/api.ErrorResponse'
       summary: Stop File Download

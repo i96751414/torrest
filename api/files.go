@@ -25,7 +25,6 @@ type FileHash struct {
 // @Success 200 {object} MessageResponse
 // @Failure 400 {object} ErrorResponse
 // @Failure 404 {object} ErrorResponse
-// @Failure 500 {object} ErrorResponse
 // @Router /torrents/{infoHash}/files/{file}/download [get]
 func downloadFile(config *settings.Settings, service *bittorrent.Service) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
@@ -52,7 +51,6 @@ func downloadFile(config *settings.Settings, service *bittorrent.Service) gin.Ha
 // @Success 200 {object} MessageResponse
 // @Failure 400 {object} ErrorResponse
 // @Failure 404 {object} ErrorResponse
-// @Failure 500 {object} ErrorResponse
 // @Router /torrents/{infoHash}/files/{file}/stop [get]
 func stopFile(service *bittorrent.Service) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
@@ -72,7 +70,6 @@ func stopFile(service *bittorrent.Service) gin.HandlerFunc {
 // @Success 200 {object} bittorrent.FileInfo
 // @Failure 400 {object} ErrorResponse
 // @Failure 404 {object} ErrorResponse
-// @Failure 500 {object} ErrorResponse
 // @Router /torrents/{infoHash}/files/{file}/info [get]
 func fileInfo(service *bittorrent.Service) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
@@ -91,7 +88,6 @@ func fileInfo(service *bittorrent.Service) gin.HandlerFunc {
 // @Success 200 {object} bittorrent.FileStatus
 // @Failure 400 {object} ErrorResponse
 // @Failure 404 {object} ErrorResponse
-// @Failure 500 {object} ErrorResponse
 // @Router /torrents/{infoHash}/files/{file}/status [get]
 func fileStatus(service *bittorrent.Service) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
@@ -115,17 +111,14 @@ func fileStatus(service *bittorrent.Service) gin.HandlerFunc {
 func fileHash(service *bittorrent.Service) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		onGetFile(ctx, service, func(file *bittorrent.File) {
-			if reader, err := file.NewReader(); err == nil {
-				if hash, err := util.HashFile(reader, file.Length()); err == nil {
-					ctx.JSON(http.StatusOK, FileHash{Hash: hash})
-				} else {
-					ctx.JSON(http.StatusInternalServerError, NewErrorResponse(err))
-				}
-				if err := reader.Close(); err != nil {
-					log.Errorf("Error closing file reader: %s\n", err)
-				}
+			reader := file.NewReader()
+			if hash, err := util.HashFile(reader, file.Length()); err == nil {
+				ctx.JSON(http.StatusOK, FileHash{Hash: hash})
 			} else {
 				ctx.JSON(http.StatusInternalServerError, NewErrorResponse(err))
+			}
+			if err := reader.Close(); err != nil {
+				log.Errorf("Error closing file reader: %s\n", err)
 			}
 		})
 	}
@@ -140,36 +133,29 @@ func fileHash(service *bittorrent.Service) gin.HandlerFunc {
 // @Success 200
 // @Failure 400 {object} ErrorResponse
 // @Failure 404 {object} ErrorResponse
-// @Failure 500 {object} ErrorResponse
 // @Router /torrents/{infoHash}/files/{file}/serve [get]
 func serveFile(service *bittorrent.Service) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		onGetFile(ctx, service, func(file *bittorrent.File) {
-			if reader, err := file.NewReader(); err == nil {
-				reader.RegisterCloseNotifier(ctx.Writer.CloseNotify())
-				http.ServeContent(ctx.Writer, ctx.Request, file.Name(), time.Time{}, reader)
-				if err := reader.Close(); err != nil {
-					log.Errorf("Error closing file reader: %s\n", err)
-				}
-			} else {
-				ctx.JSON(http.StatusInternalServerError, NewErrorResponse(err))
+			reader := file.NewReader()
+			reader.RegisterCloseNotifier(ctx.Writer.CloseNotify())
+			http.ServeContent(ctx.Writer, ctx.Request, file.Name(), time.Time{}, reader)
+			if err := reader.Close(); err != nil {
+				log.Errorf("Error closing file reader: %s\n", err)
 			}
 		})
 	}
 }
 
+// Can produce 400 (StatusBadRequest) and 404 (StatusNotFound) http errors
 func onGetFile(ctx *gin.Context, service *bittorrent.Service, f func(*bittorrent.File)) {
 	fileString := ctx.Param("file")
 	if fileId, err := strconv.Atoi(fileString); err == nil {
 		onGetTorrent(ctx, service, func(torrent *bittorrent.Torrent) {
-			if torrent.HasMetadata() {
-				if file, err := torrent.GetFile(fileId); err == nil {
-					f(file)
-				} else {
-					ctx.JSON(http.StatusBadRequest, NewErrorResponse(err))
-				}
+			if file, err := torrent.GetFile(fileId); err == nil {
+				f(file)
 			} else {
-				ctx.JSON(http.StatusInternalServerError, NewErrorResponse("no metadata"))
+				ctx.JSON(http.StatusBadRequest, NewErrorResponse(err))
 			}
 		})
 	} else {

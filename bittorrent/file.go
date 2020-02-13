@@ -45,10 +45,10 @@ func NewFile(torrent *Torrent, storage libtorrent.FileStorage, index int) *File 
 		priority:    torrent.handle.FilePriority(index).(uint),
 	}
 
-	if f.priority == 0 {
+	if f.priority == DontDownloadPriority {
 		// Make sure we don't have individual pieces downloading
 		// previously set by Buffer
-		f.SetPriority(0)
+		f.SetPriority(DontDownloadPriority)
 	}
 
 	return f
@@ -87,8 +87,8 @@ func (f *File) Name() string {
 	return f.name
 }
 
-func (f *File) NewReader() (*reader, error) {
-	return newReader(f.torrent, f.offset, f.length, f.pieceLength, 0.01), nil
+func (f *File) NewReader() *reader {
+	return newReader(f.torrent, f.offset, f.length, f.pieceLength, 0.01)
 }
 
 func (f *File) GetDownloadPath() string {
@@ -118,14 +118,14 @@ func (f *File) BytesCompleted() int64 {
 
 func (f *File) SetPriority(priority uint) {
 	f.priority = priority
-	if priority == 0 {
+	if priority == DontDownloadPriority {
 		f.isBuffering = false
 	}
 	f.torrent.handle.FilePriority(f.index, priority)
 }
 
 func (f *File) IsDownloading() bool {
-	return f.isBuffering || f.priority != 0
+	return f.isBuffering || f.priority != DontDownloadPriority
 }
 
 func (f *File) addBufferPiece(piece int, info libtorrent.TorrentInfo) {

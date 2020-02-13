@@ -13,4 +13,5 @@ var (
 	ReaderCloseNotifyError = errors.New("reader close notify received")
 	InvalidWhenceError     = errors.New("invalid whence")
 	TimeoutError           = errors.New("timeout reached")
+	NoMetadataError        = errors.New("no metadata")
 )

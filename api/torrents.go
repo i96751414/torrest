@@ -188,6 +188,7 @@ func stopTorrent(service *bittorrent.Service) gin.HandlerFunc {
 	}
 }
 
+// Can produce 404 (StatusNotFound) http error
 func onGetTorrent(ctx *gin.Context, service *bittorrent.Service, f func(*bittorrent.Torrent)) {
 	infoHash := ctx.Param("infoHash")
 	if torrent, err := service.GetTorrent(infoHash); err == nil {

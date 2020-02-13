@@ -121,7 +121,7 @@ func (t *Torrent) getState(file ...*File) LTStatus {
 			if f.isBuffering {
 				return BufferingStatus
 			}
-			if f.priority != 0 {
+			if f.priority != DontDownloadPriority {
 				downloading = true
 			}
 		}
@@ -196,6 +196,9 @@ func (t *Torrent) Files() []*File {
 }
 
 func (t *Torrent) GetFile(id int) (*File, error) {
+	if !t.HasMetadata() {
+		return nil, NoMetadataError
+	}
 	files := t.Files()
 	if id < 0 || id >= len(files) {
 		return nil, InvalidFileIdError
@@ -204,9 +207,24 @@ func (t *Torrent) GetFile(id int) (*File, error) {
 }
 
 func (t *Torrent) SetPriority(priority uint) {
+	if !t.HasMetadata() {
+		panic("don't have metadata")
+	}
 	for _, f := range t.Files() {
 		f.SetPriority(priority)
 	}
+}
+
+func (t *Torrent) AllFilesDownloading() bool {
+	if !t.HasMetadata() {
+		panic("don't have metadata")
+	}
+	for _, f := range t.Files() {
+		if f.priority == DontDownloadPriority {
+			return false
+		}
+	}
+	return true
 }
 
 func (t *Torrent) getFilesDownloadedBytes() []int64 {
