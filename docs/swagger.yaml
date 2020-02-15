@@ -102,6 +102,8 @@ definitions:
         type: integer
       state:
         type: integer
+      total:
+        type: integer
       upload_rate:
         type: integer
     type: object

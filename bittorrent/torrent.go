@@ -49,6 +49,7 @@ type Torrent struct {
 
 type TorrentStatus struct {
 	Name            string   `json:"name"`
+	Total           int64    `json:"total"`
 	Progress        float64  `json:"progress"`
 	DownloadRate    int      `json:"download_rate"`
 	UploadRate      int      `json:"upload_rate"`
@@ -157,6 +158,7 @@ func (t *Torrent) GetStatus() *TorrentStatus {
 
 	return &TorrentStatus{
 		Name:            status.GetName(),
+		Total:           status.GetTotal(),
 		Progress:        float64(status.GetProgress()) * 100,
 		DownloadRate:    status.GetDownloadRate(),
 		UploadRate:      status.GetUploadRate(),

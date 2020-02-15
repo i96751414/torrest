@@ -942,6 +942,9 @@
                 "state": {
                     "type": "integer"
                 },
+                "total": {
+                    "type": "integer"
+                },
                 "upload_rate": {
                     "type": "integer"
                 }
