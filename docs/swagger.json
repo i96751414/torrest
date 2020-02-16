@@ -945,6 +945,9 @@
                 "total": {
                     "type": "integer"
                 },
+                "total_wanted": {
+                    "type": "integer"
+                },
                 "upload_rate": {
                     "type": "integer"
                 }
