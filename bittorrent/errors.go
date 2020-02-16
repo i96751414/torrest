@@ -9,6 +9,7 @@ var (
 	InvalidFileIdError     = errors.New("no such file id")
 	ServiceClosedError     = errors.New("service was closed")
 	TorrentClosedError     = errors.New("torrent was closed")
+	TorrentPausedError     = errors.New("torrent paused")
 	ReaderClosedError      = errors.New("reader was closed")
 	ReaderCloseNotifyError = errors.New("reader close notify received")
 	InvalidWhenceError     = errors.New("invalid whence")

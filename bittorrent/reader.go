@@ -74,11 +74,16 @@ func (r *reader) waitForPiece(piece int, timeout time.Duration) error {
 			for _, n := range r.closeNotifiers {
 				select {
 				case <-n:
-					log.Debug("Received close notify for '%s'", r.torrent.infoHash)
+					log.Debugf("Received close notify for '%s'", r.torrent.infoHash)
 					return ReaderCloseNotifyError
 				default:
 					// do nothing
 				}
+			}
+
+			if r.torrent.isPaused {
+				log.Debugf("Torrent '%s' is paused", r.torrent.infoHash)
+				return TorrentPausedError
 			}
 		}
 	}
