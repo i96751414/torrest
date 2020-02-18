@@ -16,7 +16,10 @@ type NewTorrentResponse struct {
 	InfoHash string `json:"info_hash" example:"000102030405060708090a0b0c0d0e0f10111213"`
 }
 
-type FileInfoResponse []*bittorrent.FileInfo
+type FileInfoResponse struct {
+	*bittorrent.FileInfo
+	Status *bittorrent.FileStatus `json:"status,omitempty"`
+}
 
 type TorrentInfoResponse struct {
 	InfoHash string                    `json:"info_hash"`
@@ -123,7 +126,8 @@ func torrentStatus(service *bittorrent.Service) gin.HandlerFunc {
 // @ID torrent-files
 // @Produce json
 // @Param infoHash path string true "torrent info hash"
-// @Success 200 {object} FileInfoResponse
+// @Param status query boolean false "get files status"
+// @Success 200 {array} FileInfoResponse
 // @Failure 404 {object} ErrorResponse
 // @Failure 500 {object} ErrorResponse
 // @Router /torrents/{infoHash}/files [get]
@@ -132,9 +136,14 @@ func torrentFiles(service *bittorrent.Service) gin.HandlerFunc {
 		onGetTorrent(ctx, service, func(torrent *bittorrent.Torrent) {
 			if torrent.HasMetadata() {
 				files := torrent.Files()
-				response := make(FileInfoResponse, len(files))
+				response := make([]FileInfoResponse, len(files))
 				for i, file := range files {
-					response[i] = file.Info()
+					response[i].FileInfo = file.Info()
+				}
+				if ctx.DefaultQuery("status", "false") == "true" {
+					for i, file := range files {
+						response[i].Status = file.Status()
+					}
 				}
 				ctx.JSON(http.StatusOK, response)
 			} else {

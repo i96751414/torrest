@@ -12,9 +12,19 @@ definitions:
         type: string
     type: object
   api.FileInfoResponse:
-    items:
-      $ref: '#/definitions/bittorrent.FileInfo'
-    type: array
+    properties:
+      id:
+        type: integer
+      length:
+        type: integer
+      name:
+        type: string
+      path:
+        type: string
+      status:
+        $ref: '#/definitions/bittorrent.FileStatus'
+        type: object
+    type: object
   api.MessageResponse:
     properties:
       message:
@@ -384,13 +394,19 @@ paths:
         name: infoHash
         required: true
         type: string
+      - description: get files status
+        in: query
+        name: status
+        type: boolean
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/api.FileInfoResponse'
+            items:
+              $ref: '#/definitions/api.FileInfoResponse'
+            type: array
         "404":
           description: Not Found
           schema:

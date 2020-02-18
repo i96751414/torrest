@@ -301,13 +301,22 @@
                         "name": "infoHash",
                         "in": "path",
                         "required": true
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "get files status",
+                        "name": "status",
+                        "in": "query"
                     }
                 ],
                 "responses": {
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/api.FileInfoResponse"
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/api.FileInfoResponse"
+                            }
                         }
                     },
                     "404": {
@@ -805,9 +814,24 @@
             }
         },
         "api.FileInfoResponse": {
-            "type": "array",
-            "items": {
-                "$ref": "#/definitions/bittorrent.FileInfo"
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "integer"
+                },
+                "length": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "path": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "object",
+                    "$ref": "#/definitions/bittorrent.FileStatus"
+                }
             }
         },
         "api.MessageResponse": {
