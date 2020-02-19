@@ -47,8 +47,13 @@ type Torrent struct {
 	spaceChecked bool
 }
 
+type TorrentInfo struct {
+	InfoHash string `json:"info_hash"`
+	Name     string `json:"name"`
+	Size     int64  `json:"size"`
+}
+
 type TorrentStatus struct {
-	Name            string   `json:"name"`
 	Total           int64    `json:"total"`
 	TotalWanted     int64    `json:"total_wanted"`
 	Progress        float64  `json:"progress"`
@@ -142,6 +147,15 @@ func (t *Torrent) HasMetadata() bool {
 	return t.handle.Status().GetHasMetadata()
 }
 
+func (t *Torrent) GetInfo() *TorrentInfo {
+	info := t.TorrentInfo()
+	return &TorrentInfo{
+		InfoHash: t.infoHash,
+		Name:     info.Name(),
+		Size:     info.TotalSize(),
+	}
+}
+
 func (t *Torrent) GetStatus() *TorrentStatus {
 	status := t.handle.Status(libtorrent.TorrentHandleQueryName)
 
@@ -158,7 +172,6 @@ func (t *Torrent) GetStatus() *TorrentStatus {
 	}
 
 	return &TorrentStatus{
-		Name:            status.GetName(),
 		Total:           status.GetTotal(),
 		TotalWanted:     status.GetTotalWanted(),
 		Progress:        float64(status.GetProgress()) * 100,

@@ -858,6 +858,12 @@
                 "info_hash": {
                     "type": "string"
                 },
+                "name": {
+                    "type": "string"
+                },
+                "size": {
+                    "type": "integer"
+                },
                 "status": {
                     "type": "object",
                     "$ref": "#/definitions/bittorrent.TorrentStatus"
@@ -938,9 +944,6 @@
                 },
                 "has_metadata": {
                     "type": "boolean"
-                },
-                "name": {
-                    "type": "string"
                 },
                 "paused": {
                     "type": "boolean"

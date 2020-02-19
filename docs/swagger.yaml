@@ -41,6 +41,10 @@ definitions:
     properties:
       info_hash:
         type: string
+      name:
+        type: string
+      size:
+        type: integer
       status:
         $ref: '#/definitions/bittorrent.TorrentStatus'
         type: object
@@ -94,8 +98,6 @@ definitions:
         type: integer
       has_metadata:
         type: boolean
-      name:
-        type: string
       paused:
         type: boolean
       peers:

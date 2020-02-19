@@ -22,8 +22,8 @@ type FileInfoResponse struct {
 }
 
 type TorrentInfoResponse struct {
-	InfoHash string                    `json:"info_hash"`
-	Status   *bittorrent.TorrentStatus `json:"status,omitempty"`
+	*bittorrent.TorrentInfo
+	Status *bittorrent.TorrentStatus `json:"status,omitempty"`
 }
 
 // @Summary List Torrents
@@ -38,7 +38,7 @@ func listTorrents(service *bittorrent.Service) gin.HandlerFunc {
 		torrents := service.Torrents()
 		response := make([]TorrentInfoResponse, len(torrents))
 		for i, torrent := range torrents {
-			response[i].InfoHash = torrent.InfoHash()
+			response[i].TorrentInfo = torrent.GetInfo()
 		}
 		if ctx.DefaultQuery("status", "false") == "true" {
 			for i, torrent := range torrents {
