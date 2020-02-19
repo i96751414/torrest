@@ -972,7 +972,13 @@
                 "total": {
                     "type": "integer"
                 },
+                "total_done": {
+                    "type": "integer"
+                },
                 "total_wanted": {
+                    "type": "integer"
+                },
+                "total_wanted_done": {
                     "type": "integer"
                 },
                 "upload_rate": {
