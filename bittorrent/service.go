@@ -63,6 +63,8 @@ type ServiceStatus struct {
 
 // NewService creates a service given the provided configs
 func NewService(config *settings.Settings) *Service {
+	createDir(config.DownloadPath)
+	createDir(config.TorrentsPath)
 	s := &Service{mu: &sync.RWMutex{}}
 	s.start(config)
 	return s
@@ -71,9 +73,6 @@ func NewService(config *settings.Settings) *Service {
 func (s *Service) start(config *settings.Settings) {
 	s.config = config.Clone()
 	s.closing = make(chan interface{})
-
-	createDir(s.config.DownloadPath)
-	createDir(s.config.TorrentsPath)
 
 	s.configure()
 	s.loadTorrentFiles()
@@ -211,6 +210,8 @@ func (s *Service) Close() {
 }
 
 func (s *Service) Reconfigure(config *settings.Settings) {
+	createDir(config.DownloadPath)
+	createDir(config.TorrentsPath)
 	s.reset()
 	s.start(config)
 }

@@ -2,11 +2,15 @@ package settings
 
 import (
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"path/filepath"
 
+	"github.com/go-playground/validator"
 	"github.com/jinzhu/copier"
 )
+
+var validate = validator.New()
 
 type UserAgentType int
 
@@ -64,10 +68,10 @@ type Settings struct {
 	OutgoingInterfaces  string           `json:"outgoing_interfaces" example:""`
 	DisableDHT          bool             `json:"disable_dht" example:"false"`
 	DisableUPNP         bool             `json:"disable_upnp" example:"false"`
-	DownloadPath        string           `json:"download_path" example:"downloads"`
-	TorrentsPath        string           `json:"torrents_path" example:"downloads/Torrents"`
+	DownloadPath        string           `json:"download_path" validate:"required" example:"downloads"`
+	TorrentsPath        string           `json:"torrents_path" validate:"required" example:"downloads/Torrents"`
 	UserAgent           UserAgentType    `json:"user_agent" example:"0"`
-	SessionSave         int              `json:"session_save" example:"30"`
+	SessionSave         int              `json:"session_save" validate:"gt=0" example:"30"`
 	TunedStorage        bool             `json:"tuned_storage" example:"false"`
 	ConnectionsLimit    int              `json:"connections_limit" example:"0"`
 	LimitAfterBuffering bool             `json:"limit_after_buffering" example:"false"`
@@ -125,14 +129,22 @@ func (s *Settings) SetSettingsPath(path string) {
 }
 
 // Update updates the settings with the json object provided
-func (s *Settings) Update(data []byte) error {
-	return json.Unmarshal(data, s)
+func (s *Settings) Update(data []byte) (err error) {
+	settings := s.Clone()
+	if err = json.Unmarshal(data, settings); err == nil {
+		if err = validate.Struct(settings); err == nil {
+			err = copier.Copy(s, settings)
+		}
+	}
+	return
 }
 
 // Clone clones the settings
 func (s *Settings) Clone() *Settings {
 	n := new(Settings)
-	_ = copier.Copy(n, s)
+	if err := copier.Copy(n, s); err != nil {
+		panic(fmt.Sprintf("Failed cloning settings: %s", err))
+	}
 	return n
 }
 

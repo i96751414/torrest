@@ -17,7 +17,7 @@ func deleteFile(path string) {
 func createDir(path string) {
 	if _, err := os.Stat(path); os.IsNotExist(err) {
 		if err := os.Mkdir(path, 0755); err != nil {
-			panic(fmt.Sprintf("Unable to create %s folder", path))
+			panic(fmt.Sprintf("Unable to create '%s' folder", path))
 		}
 	}
 }
