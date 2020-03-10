@@ -28,6 +28,8 @@ type FileInfo struct {
 }
 
 type FileStatus struct {
+	Total             int64    `json:"total"`
+	TotalDone         int64    `json:"total_done"`
 	Progress          float64  `json:"progress"`
 	Priority          uint     `json:"priority"`
 	BufferingProgress float64  `json:"buffering_progress"`
@@ -66,6 +68,8 @@ func (f *File) Info() *FileInfo {
 
 func (f *File) Status() *FileStatus {
 	return &FileStatus{
+		Total:             f.length,
+		TotalDone:         f.BytesCompleted(),
 		Progress:          f.GetProgress(),
 		Priority:          f.priority,
 		BufferingProgress: f.GetBufferingProgress(),

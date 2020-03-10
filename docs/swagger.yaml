@@ -70,6 +70,10 @@ definitions:
         type: number
       state:
         type: integer
+      total:
+        type: integer
+      total_done:
+        type: integer
     type: object
   bittorrent.ServiceStatus:
     properties:
@@ -198,6 +202,9 @@ definitions:
       user_agent:
         example: 0
         type: integer
+    required:
+    - download_path
+    - torrents_path
     type: object
 info:
   contact:

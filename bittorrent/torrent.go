@@ -297,9 +297,9 @@ func (t *Torrent) getFilesProgress(file ...*File) float64 {
 	var completed int64
 
 	progresses := t.getFilesDownloadedBytes()
-	for i, f := range file {
+	for _, f := range file {
 		total += f.length
-		completed += progresses[i]
+		completed += progresses[f.index]
 	}
 
 	if total == 0 {
