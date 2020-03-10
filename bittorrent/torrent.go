@@ -150,12 +150,14 @@ func (t *Torrent) HasMetadata() bool {
 }
 
 func (t *Torrent) GetInfo() *TorrentInfo {
-	info := t.TorrentInfo()
-	return &TorrentInfo{
-		InfoHash: t.infoHash,
-		Name:     info.Name(),
-		Size:     info.TotalSize(),
+	torrentInfo := &TorrentInfo{InfoHash: t.infoHash}
+	if info := t.handle.TorrentFile(); info.Swigcptr() != 0 {
+		torrentInfo.Name = info.Name()
+		torrentInfo.Size = info.TotalSize()
+	} else {
+		torrentInfo.Name = t.infoHash
 	}
+	return torrentInfo
 }
 
 func (t *Torrent) GetStatus() *TorrentStatus {
@@ -196,16 +198,12 @@ func (t *Torrent) GetStatus() *TorrentStatus {
 	}
 }
 
-func (t *Torrent) TorrentInfo() libtorrent.TorrentInfo {
-	return t.handle.TorrentFile()
-}
-
 func (t *Torrent) Files() []*File {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 
 	if t.files == nil {
-		if info := t.TorrentInfo(); info.Swigcptr() != 0 {
+		if info := t.handle.TorrentFile(); info.Swigcptr() != 0 {
 			files := info.Files()
 			t.files = make([]*File, info.NumFiles())
 			for i := 0; i < info.NumFiles(); i++ {
@@ -273,7 +271,7 @@ func (t *Torrent) piecesBytesMissing(pieces []int) (missing int64) {
 	queue := libtorrent.NewStdVectorPartialPieceInfo()
 	defer libtorrent.DeleteStdVectorPartialPieceInfo(queue)
 	t.handle.GetDownloadQueue(queue)
-	info := t.TorrentInfo()
+	info := t.handle.TorrentFile()
 
 	for _, piece := range pieces {
 		if !t.handle.HavePiece(piece) {
@@ -324,7 +322,7 @@ func (t *Torrent) checkAvailableSpace() {
 		log.Warningf("Unable to retrieve the free space for %s, continuing anyway...", t.service.config.DownloadPath)
 		return
 	} else if diskStatus != nil {
-		torrentInfo := t.TorrentInfo()
+		torrentInfo := t.handle.TorrentFile()
 		if torrentInfo == nil || torrentInfo.Swigcptr() == 0 {
 			log.Warning("Missing torrent info to check available space.")
 			return

@@ -42,7 +42,7 @@ func NewFile(torrent *Torrent, storage libtorrent.FileStorage, index int) *File 
 		length:      storage.FileSize(index),
 		path:        storage.FilePath(index),
 		name:        storage.FileName(index),
-		pieceLength: int64(torrent.TorrentInfo().PieceLength()),
+		pieceLength: int64(torrent.handle.TorrentFile().PieceLength()),
 		priority:    torrent.handle.FilePriority(index).(uint),
 	}
 
@@ -140,7 +140,7 @@ func (f *File) addBufferPiece(piece int, info libtorrent.TorrentInfo) {
 func (f *File) Buffer(startBufferSize, endBufferSize int64) {
 	f.bufferSize = 0
 	f.bufferPieces = nil
-	info := f.torrent.TorrentInfo()
+	info := f.torrent.handle.TorrentFile()
 
 	if f.length >= startBufferSize+endBufferSize {
 		aFirstPieceIndex, aEndPieceIndex := f.getPiecesIndexes(0, startBufferSize)
