@@ -1,0 +1,33 @@
+sudo: required
+language: go
+go:
+  - "1.13"
+
+env:
+  - PLATFORM=android-arm
+  - PLATFORM=android-arm64
+  - PLATFORM=android-x64
+  - PLATFORM=android-x86
+  - PLATFORM=darwin-x64
+  - PLATFORM=linux-armv7
+  - PLATFORM=linux-arm64
+  - PLATFORM=linux-x64
+  - PLATFORM=linux-x86
+  - PLATFORM=windows-x64
+  - PLATFORM=windows-x86
+
+services:
+  - docker
+
+before_install:
+  - make pull
+
+install:
+  - go get -d ./...
+  - go get -d github.com/i96751414/libtorrent-go
+
+script:
+  - set -e
+  - go tool vet -unsafeptr=false .
+  - make libs
+  - make $PLATFORM
