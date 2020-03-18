@@ -23,8 +23,8 @@ before_install:
   - make pull
 
 install:
-  - go get -d ./...
-  - go get -d github.com/i96751414/libtorrent-go
+  - go get -v -d ./...
+  - go get -v -d github.com/i96751414/libtorrent-go
 
 script:
   - set -e
