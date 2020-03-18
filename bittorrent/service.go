@@ -421,6 +421,7 @@ func (s *Service) configure() {
 	}
 
 	s.session = libtorrent.NewSession(s.settingsPack, libtorrent.SessionHandleAddDefaultPlugins)
+	log.Debug("Configuration done")
 }
 
 func (s *Service) setBufferingRateLimit(enable bool) {
@@ -587,7 +588,7 @@ func (s *Service) addTorrentWithResumeData(fastResumeFile string) (err error) {
 		defer libtorrent.DeleteBdecodeNode(node)
 		errorCode := libtorrent.NewErrorCode()
 		defer libtorrent.DeleteErrorCode(errorCode)
-		libtorrent.Bdecode(string(fastResumeData), node, errorCode)
+		libtorrent.Bdecode(fastResumeData, int64(len(fastResumeData)), node, errorCode)
 		if errorCode.Failed() {
 			err = errors.New(errorCode.Message().(string))
 		} else {
@@ -608,7 +609,7 @@ func (s *Service) loadTorrentFiles() {
 	resumeFiles, _ := filepath.Glob(filepath.Join(s.config.TorrentsPath, "*.fastresume"))
 	for _, fastResumeFile := range resumeFiles {
 		if err := s.addTorrentWithResumeData(fastResumeFile); err != nil {
-			log.Errorf("Failed adding torrent with resume data: %s")
+			log.Errorf("Failed adding torrent with resume data: %s", err)
 		}
 	}
 
