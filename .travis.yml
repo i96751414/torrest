@@ -24,7 +24,7 @@ before_install:
   - make pull
 
 install:
-  - go get -d ./...
+  - GO111MODULE=off go get -d ./...
 
 script:
   - set -e
