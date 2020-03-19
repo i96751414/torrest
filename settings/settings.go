@@ -6,8 +6,9 @@ import (
 	"io/ioutil"
 	"path/filepath"
 
-	"github.com/go-playground/validator"
 	"github.com/jinzhu/copier"
+	//"github.com/go-playground/validator"
+	"gopkg.in/go-playground/validator.v9"
 )
 
 var validate = validator.New()
