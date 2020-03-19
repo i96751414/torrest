@@ -21,10 +21,11 @@ services:
   - docker
 
 before_install:
+  - go get -d github.com/go-playground/validator
   - make pull
 
 install:
-  - GO111MODULE=off go get -d ./...
+  - go get -d ./...
 
 script:
   - set -e
