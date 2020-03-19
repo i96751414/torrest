@@ -6,7 +6,7 @@ import (
 	"io/ioutil"
 	"path/filepath"
 
-	"github.com/go-playground/validator/v10"
+	"github.com/go-playground/validator"
 	"github.com/jinzhu/copier"
 )
 

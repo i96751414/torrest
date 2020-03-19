@@ -1,7 +1,8 @@
-sudo: required
+dist: xenial
+os: linux
 language: go
 go:
-  - "1.13"
+  - "1.14"
 
 env:
   - PLATFORM=android-arm
@@ -23,8 +24,7 @@ before_install:
   - make pull
 
 install:
-  - go get -v -d ./...
-  - go get -v -d github.com/i96751414/libtorrent-go
+  - go get -d ./...
 
 script:
   - set -e

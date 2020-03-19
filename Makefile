@@ -94,9 +94,12 @@ DOCKER_GOPATH = "/go"
 DOCKER_WORKDIR = "$(DOCKER_GOPATH)/src/$(GO_PKG)"
 DOCKER_GOCACHE = "/tmp/.cache"
 
+WORKDIR = $(shell pwd)
+
 OUTPUT_NAME = $(NAME)$(EXT)
 BUILD_PATH = $(BUILD_DIR)/$(TARGET_OS)_$(TARGET_ARCH)
 LIBTORRENT_GO_HOME = "$(GOPATH)/src/$(LIBTORRENT_GO)"
+# LIBTORRENT_GO_HOME = "$(shell $(GO) list -m -f '{{.Dir}}' $(LIBTORRENT_GO))"
 
 USERGRP = "$(shell id -u):$(shell id -g)"
 
@@ -116,7 +119,7 @@ force:
 libtorrent-go: force
 	$(MAKE) -C $(LIBTORRENT_GO_HOME) $(PLATFORM)
 
-libtorrent-go-defines:
+libtorrent-go-defines: force
 	$(MAKE) -C $(LIBTORRENT_GO_HOME) defines
 
 $(BUILD_PATH):
@@ -168,18 +171,18 @@ build: force
 	-e GOPATH=$(DOCKER_GOPATH) \
 	-e GOCACHE=$(DOCKER_GOCACHE) \
 	-v "$(GOPATH)":$(DOCKER_GOPATH) \
-	-v "$(shell pwd)":$(DOCKER_WORKDIR) \
+	-v "$(WORKDIR)":$(DOCKER_WORKDIR) \
 	-w $(DOCKER_WORKDIR) \
 	$(DOCKER_IMAGE):$(TARGET_OS)-$(TARGET_ARCH) \
 	make dist TARGET_OS=$(TARGET_OS) TARGET_ARCH=$(TARGET_ARCH) GIT_VERSION=$(GIT_VERSION)
 
 docker: force
-	$(DOCKER) run --rm \
+	$(DOCKER) run --rm -it \
 	-e GOPATH=$(DOCKER_GOPATH) \
 	-v "$(GOPATH)":$(DOCKER_GOPATH) \
-	-v "$(shell pwd)":$(DOCKER_WORKDIR) \
+	-v "$(WORKDIR)":$(DOCKER_WORKDIR) \
 	-w $(DOCKER_WORKDIR) \
-	$(DOCKER_IMAGE):$(TARGET_OS)-$(TARGET_ARCH)
+	$(DOCKER_IMAGE):$(TARGET_OS)-$(TARGET_ARCH) bash
 
 strip: force
 	@find $(BUILD_PATH) -type f ! -name "*.exe" -exec $(STRIP) {} \;
@@ -200,13 +203,13 @@ libs: force
 
 pull-all:
 	for i in $(PLATFORMS); do \
-		docker pull $(PROJECT)/libtorrent-go:$$i; \
-		docker tag $(PROJECT)/libtorrent-go:$$i libtorrent-go:$$i; \
+		$(DOCKER) pull $(PROJECT)/libtorrent-go:$$i; \
+		$(DOCKER) tag $(PROJECT)/libtorrent-go:$$i libtorrent-go:$$i; \
 	done
 
 pull:
-	docker pull $(PROJECT)/libtorrent-go:$(PLATFORM)
-	docker tag $(PROJECT)/libtorrent-go:$(PLATFORM) libtorrent-go:$(PLATFORM)
+	$(DOCKER) pull $(PROJECT)/libtorrent-go:$(PLATFORM)
+	$(DOCKER) tag $(PROJECT)/libtorrent-go:$(PLATFORM) libtorrent-go:$(PLATFORM)
 
 # go get -u github.com/swaggo/swag/cmd/swag
 swag:
