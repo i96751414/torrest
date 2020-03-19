@@ -308,9 +308,7 @@ func (s *Service) configure() {
 		}
 		if s.config.MaxUploadRate > 0 {
 			log.Debugf("Rate limiting upload to %dkB/s", s.config.MaxUploadRate/1024)
-			// If we have an upload rate, use the nicer bittyrant choker
 			s.settingsPack.SetInt("upload_rate_limit", s.config.MaxUploadRate)
-			s.settingsPack.SetInt("choking_algorithm", int(libtorrent.SettingsPackBittyrantChoker))
 		}
 	}
 
