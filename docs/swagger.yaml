@@ -88,6 +88,15 @@ definitions:
       upload_rate:
         type: integer
     type: object
+  bittorrent.TorrentInfo:
+    properties:
+      info_hash:
+        type: string
+      name:
+        type: string
+      size:
+        type: integer
+    type: object
   bittorrent.TorrentStatus:
     properties:
       active_time:
@@ -620,6 +629,28 @@ paths:
           schema:
             $ref: '#/definitions/api.ErrorResponse'
       summary: Stop File Download
+  /torrents/{infoHash}/info:
+    get:
+      description: get torrent info
+      operationId: torrent-info
+      parameters:
+      - description: torrent info hash
+        in: path
+        name: infoHash
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/bittorrent.TorrentInfo'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/api.ErrorResponse'
+      summary: Get Torrent Info
   /torrents/{infoHash}/pause:
     get:
       description: pause torrent from service

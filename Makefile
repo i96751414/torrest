@@ -213,4 +213,4 @@ pull:
 
 # go get -u github.com/swaggo/swag/cmd/swag
 swag:
-	swag init -g ./api/routes.go -o ./docs
+	swag init --generalInfo ./api/routes.go --output ./docs

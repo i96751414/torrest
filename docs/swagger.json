@@ -617,6 +617,39 @@
                 }
             }
         },
+        "/torrents/{infoHash}/info": {
+            "get": {
+                "description": "get torrent info",
+                "produces": [
+                    "application/json"
+                ],
+                "summary": "Get Torrent Info",
+                "operationId": "torrent-info",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "torrent info hash",
+                        "name": "infoHash",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/bittorrent.TorrentInfo"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/api.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/torrents/{infoHash}/pause": {
             "get": {
                 "description": "pause torrent from service",
@@ -926,6 +959,20 @@
                     "type": "number"
                 },
                 "upload_rate": {
+                    "type": "integer"
+                }
+            }
+        },
+        "bittorrent.TorrentInfo": {
+            "type": "object",
+            "properties": {
+                "info_hash": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "size": {
                     "type": "integer"
                 }
             }

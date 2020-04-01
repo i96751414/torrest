@@ -105,6 +105,22 @@ func pauseTorrent(service *bittorrent.Service) gin.HandlerFunc {
 	}
 }
 
+// @Summary Get Torrent Info
+// @Description get torrent info
+// @ID torrent-info
+// @Produce json
+// @Param infoHash path string true "torrent info hash"
+// @Success 200 {object} bittorrent.TorrentInfo
+// @Failure 404 {object} ErrorResponse
+// @Router /torrents/{infoHash}/info [get]
+func torrentInfo(service *bittorrent.Service) gin.HandlerFunc {
+	return func(ctx *gin.Context) {
+		onGetTorrent(ctx, service, func(torrent *bittorrent.Torrent) {
+			ctx.JSON(http.StatusOK, torrent.GetInfo())
+		})
+	}
+}
+
 // @Summary Get Torrent Status
 // @Description get torrent status
 // @ID torrent-status
