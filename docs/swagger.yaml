@@ -237,6 +237,10 @@ paths:
         name: uri
         required: true
         type: string
+      - description: ignore if duplicate
+        in: query
+        name: ignore_duplicate
+        type: boolean
       produces:
       - application/json
       responses:
@@ -265,6 +269,10 @@ paths:
         name: torrent
         required: true
         type: file
+      - description: ignore if duplicate
+        in: query
+        name: ignore_duplicate
+        type: boolean
       produces:
       - application/json
       responses:

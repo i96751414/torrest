@@ -47,6 +47,12 @@ var doc = `{
                         "name": "uri",
                         "in": "query",
                         "required": true
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "ignore if duplicate",
+                        "name": "ignore_duplicate",
+                        "in": "query"
                     }
                 ],
                 "responses": {
@@ -89,6 +95,12 @@ var doc = `{
                         "name": "torrent",
                         "in": "formData",
                         "required": true
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "ignore if duplicate",
+                        "name": "ignore_duplicate",
+                        "in": "query"
                     }
                 ],
                 "responses": {

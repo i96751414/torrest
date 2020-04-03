@@ -12,10 +12,6 @@ const (
 	endBufferSize      = 10 * 1024 * 1024 // 10MB
 )
 
-type NewTorrentResponse struct {
-	InfoHash string `json:"info_hash" example:"000102030405060708090a0b0c0d0e0f10111213"`
-}
-
 type FileInfoResponse struct {
 	*bittorrent.FileInfo
 	Status *bittorrent.FileStatus `json:"status,omitempty"`

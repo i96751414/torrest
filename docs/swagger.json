@@ -31,6 +31,12 @@
                         "name": "uri",
                         "in": "query",
                         "required": true
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "ignore if duplicate",
+                        "name": "ignore_duplicate",
+                        "in": "query"
                     }
                 ],
                 "responses": {
@@ -73,6 +79,12 @@
                         "name": "torrent",
                         "in": "formData",
                         "required": true
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "ignore if duplicate",
+                        "name": "ignore_duplicate",
+                        "in": "query"
                     }
                 ],
                 "responses": {

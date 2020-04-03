@@ -9,6 +9,10 @@ import (
 	"github.com/i96751414/torrest/bittorrent"
 )
 
+type NewTorrentResponse struct {
+	InfoHash string `json:"info_hash" example:"000102030405060708090a0b0c0d0e0f10111213"`
+}
+
 // @Summary Status
 // @Description get service status
 // @ID status
@@ -52,6 +56,7 @@ func resume(service *bittorrent.Service) gin.HandlerFunc {
 // @ID add-magnet
 // @Produce json
 // @Param uri query string true "magnet URI"
+// @Param ignore_duplicate query boolean false "ignore if duplicate"
 // @Success 200 {object} NewTorrentResponse
 // @Failure 400 {object} ErrorResponse
 // @Failure 500 {object} ErrorResponse
@@ -63,7 +68,9 @@ func addMagnet(service *bittorrent.Service) gin.HandlerFunc {
 			ctx.JSON(http.StatusBadRequest, NewErrorResponse("Invalid magnet provided"))
 			return
 		}
-		if infoHash, err := service.AddMagnet(magnet); err == nil {
+		if infoHash, err := service.AddMagnet(magnet); err == nil ||
+			(err == bittorrent.DuplicateTorrentError &&
+				ctx.DefaultQuery("ignore_duplicate", "false") == "true") {
 			ctx.JSON(http.StatusOK, NewTorrentResponse{InfoHash: infoHash})
 		} else {
 			ctx.JSON(http.StatusInternalServerError, NewErrorResponse(err))
@@ -77,6 +84,7 @@ func addMagnet(service *bittorrent.Service) gin.HandlerFunc {
 // @Accept multipart/form-data
 // @Produce json
 // @Param torrent formData file true "torrent file"
+// @Param ignore_duplicate query boolean false "ignore if duplicate"
 // @Success 200 {object} NewTorrentResponse
 // @Failure 400 {object} ErrorResponse
 // @Failure 500 {object} ErrorResponse
@@ -91,7 +99,9 @@ func addTorrent(service *bittorrent.Service) gin.HandlerFunc {
 			if file, err = f.Open(); err == nil {
 				data := make([]byte, f.Size)
 				if _, err = file.Read(data); err == nil {
-					if infoHash, err = service.AddTorrentData(data); err == nil {
+					if infoHash, err = service.AddTorrentData(data); err == nil ||
+						(err == bittorrent.DuplicateTorrentError &&
+							ctx.DefaultQuery("ignore_duplicate", "false") == "true") {
 						ctx.JSON(http.StatusOK, NewTorrentResponse{InfoHash: infoHash})
 						return
 					}
