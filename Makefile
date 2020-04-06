@@ -13,9 +13,7 @@ CGO_ENABLED = 1
 BUILD_DIR = build
 LIBTORRENT_GO = github.com/i96751414/libtorrent-go
 GIT = git
-GIT_VERSION = $(shell $(GIT) describe --tags)
-# Use development for now - TODO: use git tags
-GO_LDFLAGS += -w -X $(GO_PKG)/util.Version="development"
+GIT_VERSION = $(shell $(GIT) describe --tags | cut -c2- || echo development)
 PLATFORMS = \
 	android-arm \
 	android-arm64 \
@@ -89,6 +87,8 @@ else ifeq ($(TARGET_OS), android)
 	CC := $(CROSS_ROOT)/bin/$(CROSS_TRIPLE)-clang
 	CXX := $(CROSS_ROOT)/bin/$(CROSS_TRIPLE)-clang++
 endif
+
+GO_LDFLAGS += -w -X $(GO_PKG)/util.Version=$(GIT_VERSION)
 
 DOCKER_GOPATH = "/go"
 DOCKER_WORKDIR = "$(DOCKER_GOPATH)/src/$(GO_PKG)"
@@ -210,6 +210,14 @@ pull-all:
 pull:
 	$(DOCKER) pull $(PROJECT)/libtorrent-go:$(PLATFORM)
 	$(DOCKER) tag $(PROJECT)/libtorrent-go:$(PLATFORM) libtorrent-go:$(PLATFORM)
+
+binaries:
+	cd $(BUILD_DIR); \
+	mkdir binaries; \
+	for platform in $(PLATFORMS); do \
+	    arch=$$(echo $${platform} | sed s/-/_/g); \
+	    (cd $${arch} && zip -9 -r ../binaries/$(NAME).$(GIT_VERSION).$${arch}.zip .); \
+	done
 
 # go get -u github.com/swaggo/swag/cmd/swag
 swag:

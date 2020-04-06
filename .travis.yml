@@ -30,3 +30,18 @@ script:
   - set -e
   - make libs
   - make $PLATFORM
+
+before_deploy:
+  - |
+    if [ "${TRAVIS_PULL_REQUEST}" = "false" ] && [ -n "${TRAVIS_TAG}" ]; then
+      make binaries
+    fi
+
+deploy:
+  provider: releases
+  api_key: ${GH_TOKEN}
+  file_glob: true
+  file: build/binaries/*.zip
+  skip_cleanup: true
+  on:
+    tags: true
