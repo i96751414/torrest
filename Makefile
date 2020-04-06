@@ -212,12 +212,15 @@ pull:
 	$(DOCKER) tag $(PROJECT)/libtorrent-go:$(PLATFORM) libtorrent-go:$(PLATFORM)
 
 binaries:
-	cd $(BUILD_DIR); \
-	mkdir binaries; \
+	@set -e; \
 	for platform in $(PLATFORMS); do \
-	    arch=$$(echo $${platform} | sed s/-/_/g); \
-	    (cd $${arch} && zip -9 -r ../binaries/$(NAME).$(GIT_VERSION).$${arch}.zip .); \
+		$(MAKE) zip PLATFORM=$${platform}; \
 	done
+
+zip:
+	cd $(BUILD_DIR) && mkdir -p binaries && \
+	arch=$$(echo $(PLATFORM) | sed s/-/_/g) && \
+	cd $${arch} && zip -9 -r ../binaries/$(NAME).$(GIT_VERSION).$${arch}.zip .
 
 # go get -u github.com/swaggo/swag/cmd/swag
 swag:

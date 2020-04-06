@@ -29,12 +29,12 @@ install:
 script:
   - set -e
   - make libs
-  - make $PLATFORM
+  - make ${PLATFORM}
 
 before_deploy:
   - |
     if [ "${TRAVIS_PULL_REQUEST}" = "false" ] && [ -n "${TRAVIS_TAG}" ]; then
-      make binaries
+      make zip PLATFORM=${PLATFORM}
     fi
 
 deploy:
