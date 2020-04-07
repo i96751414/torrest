@@ -13,7 +13,11 @@ CGO_ENABLED = 1
 BUILD_DIR = build
 LIBTORRENT_GO = github.com/i96751414/libtorrent-go
 GIT = git
-GIT_VERSION = $(shell $(GIT) describe --tags | cut -c2- || echo development)
+GIT_VERSION = $(shell $(GIT) describe --tags | cut -c2-)
+ifeq ($(GIT_VERSION),)
+	GIT_VERSION := dev
+endif
+
 PLATFORMS = \
 	android-arm \
 	android-arm64 \
@@ -29,7 +33,7 @@ PLATFORMS = \
 	windows-x86
 
 ifeq ($(GOPATH),)
-	GOPATH = $(shell go env GOPATH)
+	GOPATH := $(shell go env GOPATH)
 endif
 
 include platform_host.mk
