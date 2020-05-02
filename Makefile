@@ -7,7 +7,7 @@ NAME = torrest
 GO_PKG = github.com/i96751414/torrest
 GO = go
 DOCKER = docker
-DOCKER_IMAGE = libtorrent-go
+LIBTORRENT_TAG = latest
 UPX = upx
 CGO_ENABLED = 1
 BUILD_DIR = build
@@ -177,7 +177,7 @@ build: force
 	-v "$(GOPATH)":$(DOCKER_GOPATH) \
 	-v "$(WORKDIR)":$(DOCKER_WORKDIR) \
 	-w $(DOCKER_WORKDIR) \
-	$(DOCKER_IMAGE):$(TARGET_OS)-$(TARGET_ARCH) \
+	$(PROJECT)/libtorrent-go-$(TARGET_OS)-$(TARGET_ARCH):$(LIBTORRENT_TAG) \
 	make dist TARGET_OS=$(TARGET_OS) TARGET_ARCH=$(TARGET_ARCH) GIT_VERSION=$(GIT_VERSION)
 
 docker: force
@@ -186,7 +186,7 @@ docker: force
 	-v "$(GOPATH)":$(DOCKER_GOPATH) \
 	-v "$(WORKDIR)":$(DOCKER_WORKDIR) \
 	-w $(DOCKER_WORKDIR) \
-	$(DOCKER_IMAGE):$(TARGET_OS)-$(TARGET_ARCH) bash
+	$(PROJECT)/libtorrent-go-$(TARGET_OS)-$(TARGET_ARCH):$(LIBTORRENT_TAG) bash
 
 strip: force
 	@find $(BUILD_PATH) -type f ! -name "*.exe" -exec $(STRIP) {} \;
@@ -207,13 +207,11 @@ libs: force
 
 pull-all:
 	for i in $(PLATFORMS); do \
-		$(DOCKER) pull $(PROJECT)/libtorrent-go:$$i; \
-		$(DOCKER) tag $(PROJECT)/libtorrent-go:$$i libtorrent-go:$$i; \
+		$(MAKE) pull PLATFORM=$$i; \
 	done
 
 pull:
-	$(DOCKER) pull $(PROJECT)/libtorrent-go:$(PLATFORM)
-	$(DOCKER) tag $(PROJECT)/libtorrent-go:$(PLATFORM) libtorrent-go:$(PLATFORM)
+	$(DOCKER) pull $(PROJECT)/libtorrent-go-$(PLATFORM):$(LIBTORRENT_TAG)
 
 binaries:
 	@set -e; \

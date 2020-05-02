@@ -20,9 +20,6 @@ env:
 services:
   - docker
 
-before_install:
-  - make pull
-
 install:
   - go get -d ./...
 
