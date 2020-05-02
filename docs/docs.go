@@ -1094,6 +1094,10 @@ var doc = `{
                 "torrents_path"
             ],
             "properties": {
+                "alerts_log_level": {
+                    "type": "integer",
+                    "example": 0
+                },
                 "buffer_size": {
                     "type": "integer",
                     "example": 20971520
@@ -1149,6 +1153,10 @@ var doc = `{
                     "example": 0
                 },
                 "seed_time_ratio_limit": {
+                    "type": "integer",
+                    "example": 0
+                },
+                "service_log_level": {
                     "type": "integer",
                     "example": 0
                 },

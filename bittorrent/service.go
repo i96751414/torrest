@@ -75,6 +75,9 @@ func (s *Service) start(config *settings.Settings) {
 	s.config = config.Clone()
 	s.closing = make(chan interface{})
 
+	logging.SetLevel(s.config.ServiceLogLevel, log.Module)
+	logging.SetLevel(s.config.AlertsLogLevel, alertsLog.Module)
+
 	s.configure()
 	s.loadTorrentFiles()
 

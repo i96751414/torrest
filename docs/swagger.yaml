@@ -153,6 +153,9 @@ definitions:
     type: object
   settings.Settings:
     properties:
+      alerts_log_level:
+        example: 0
+        type: integer
       buffer_size:
         example: 20971520
         type: integer
@@ -194,6 +197,9 @@ definitions:
         example: 0
         type: integer
       seed_time_ratio_limit:
+        example: 0
+        type: integer
+      service_log_level:
         example: 0
         type: integer
       session_save:
