@@ -46,6 +46,7 @@ type Service struct {
 	settingsPack libtorrent.SettingsPack
 	torrents     []*Torrent
 	mu           *sync.RWMutex
+	wg           *sync.WaitGroup
 	closing      chan interface{}
 	UserAgent    string
 	downloadRate int64
@@ -65,7 +66,7 @@ type ServiceStatus struct {
 func NewService(config *settings.Settings) *Service {
 	createDir(config.DownloadPath)
 	createDir(config.TorrentsPath)
-	s := &Service{mu: &sync.RWMutex{}}
+	s := &Service{mu: &sync.RWMutex{}, wg: &sync.WaitGroup{}}
 	s.start(config)
 	return s
 }
@@ -77,12 +78,14 @@ func (s *Service) start(config *settings.Settings) {
 	s.configure()
 	s.loadTorrentFiles()
 
+	s.wg.Add(3)
 	go s.saveResumeDataLoop()
 	go s.alertsConsumer()
 	go s.downloadProgress()
 }
 
 func (s *Service) alertsConsumer() {
+	defer s.wg.Done()
 	ipRegex := regexp.MustCompile(`\.\d+`)
 	for {
 		select {
@@ -185,6 +188,7 @@ func (s *Service) onStateChanged(alert libtorrent.StateChangedAlert) {
 }
 
 func (s *Service) saveResumeDataLoop() {
+	defer s.wg.Done()
 	for {
 		select {
 		case <-s.closing:
@@ -213,6 +217,7 @@ func (s *Service) Reconfigure(config *settings.Settings) {
 	createDir(config.DownloadPath)
 	createDir(config.TorrentsPath)
 	s.reset()
+	s.wg.Wait()
 	s.start(config)
 }
 
@@ -631,6 +636,7 @@ func (s *Service) loadTorrentFiles() {
 }
 
 func (s *Service) downloadProgress() {
+	defer s.wg.Done()
 	progressTicker := time.NewTicker(libtorrentProgressTime)
 	defer progressTicker.Stop()
 
