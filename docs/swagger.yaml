@@ -200,7 +200,7 @@ definitions:
         example: 0
         type: integer
       service_log_level:
-        example: 0
+        example: 4
         type: integer
       session_save:
         example: 30

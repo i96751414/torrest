@@ -1170,7 +1170,7 @@ var doc = `{
                 },
                 "service_log_level": {
                     "type": "integer",
-                    "example": 0
+                    "example": 4
                 },
                 "session_save": {
                     "type": "integer",

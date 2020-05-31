@@ -85,7 +85,7 @@ type Settings struct {
 	EncryptionPolicy    EncryptionPolicy `json:"encryption_policy" example:"0"`
 	Proxy               *ProxySettings   `json:"proxy"`
 	BufferSize          int64            `json:"buffer_size" example:"20971520"`
-	ServiceLogLevel     logging.Level    `json:"service_log_level" validate:"gte=0,lte=5" example:"0" swaggertype:"integer"`
+	ServiceLogLevel     logging.Level    `json:"service_log_level" validate:"gte=0,lte=5" example:"4" swaggertype:"integer"`
 	AlertsLogLevel      logging.Level    `json:"alerts_log_level" validate:"gte=0,lte=5" example:"0" swaggertype:"integer"`
 }
 
