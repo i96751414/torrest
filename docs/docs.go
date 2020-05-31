@@ -53,6 +53,12 @@ var doc = `{
                         "description": "ignore if duplicate",
                         "name": "ignore_duplicate",
                         "in": "query"
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "start downloading",
+                        "name": "download",
+                        "in": "query"
                     }
                 ],
                 "responses": {
@@ -100,6 +106,12 @@ var doc = `{
                         "type": "boolean",
                         "description": "ignore if duplicate",
                         "name": "ignore_duplicate",
+                        "in": "query"
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "start downloading",
+                        "name": "download",
                         "in": "query"
                     }
                 ],

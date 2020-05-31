@@ -475,12 +475,16 @@ func (s *Service) reset() {
 	s.session.ApplySettings(s.settingsPack)
 }
 
-func (s *Service) addTorrentWithParams(torrentParams libtorrent.AddTorrentParams, infoHash string, isResumeData bool) error {
+func (s *Service) addTorrentWithParams(torrentParams libtorrent.AddTorrentParams, infoHash string, isResumeData, noDownload bool) error {
 	if !isResumeData {
+		log.Debugf("Setting params for '%s' torrent", infoHash)
 		torrentParams.SetSavePath(s.config.DownloadPath)
 		// torrentParams.SetStorageMode(libtorrent.StorageModeAllocate)
 		torrentParams.SetFlags(libtorrent.GetSequentialDownload())
-		// Make sure we do not download anything yet
+	}
+
+	if noDownload {
+		log.Debugf("Disabling download for '%s' torrent", infoHash)
 		filesPriorities := libtorrent.NewStdVectorChar()
 		defer libtorrent.DeleteStdVectorChar(filesPriorities)
 		for i := maxFilesPerTorrent; i > 0; i-- {
@@ -505,7 +509,7 @@ func (s *Service) addTorrentWithParams(torrentParams libtorrent.AddTorrentParams
 	return nil
 }
 
-func (s *Service) AddMagnet(magnet string) (infoHash string, err error) {
+func (s *Service) AddMagnet(magnet string, download bool) (infoHash string, err error) {
 	torrentParams := libtorrent.NewAddTorrentParams()
 	defer libtorrent.DeleteAddTorrentParams(torrentParams)
 	errorCode := libtorrent.NewErrorCode()
@@ -520,11 +524,11 @@ func (s *Service) AddMagnet(magnet string) (infoHash string, err error) {
 
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	err = s.addTorrentWithParams(torrentParams, infoHash, false)
+	err = s.addTorrentWithParams(torrentParams, infoHash, false, !download)
 	return
 }
 
-func (s *Service) AddTorrentData(data []byte) (infoHash string, err error) {
+func (s *Service) AddTorrentData(data []byte, download bool) (infoHash string, err error) {
 	errorCode := libtorrent.NewErrorCode()
 	defer libtorrent.DeleteErrorCode(errorCode)
 	info := libtorrent.NewTorrentInfo(string(data), len(data), errorCode)
@@ -541,7 +545,7 @@ func (s *Service) AddTorrentData(data []byte) (infoHash string, err error) {
 
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	err = s.addTorrentWithParams(torrentParams, infoHash, false)
+	err = s.addTorrentWithParams(torrentParams, infoHash, false, !download)
 	if err == nil {
 		if e := ioutil.WriteFile(s.torrentPath(infoHash), data, 0644); e != nil {
 			log.Errorf("Failed saving torrent: %s", err)
@@ -550,7 +554,7 @@ func (s *Service) AddTorrentData(data []byte) (infoHash string, err error) {
 	return
 }
 
-func (s *Service) AddTorrentFile(torrentFile string) (infoHash string, err error) {
+func (s *Service) AddTorrentFile(torrentFile string, download bool) (infoHash string, err error) {
 	fi, e := os.Stat(torrentFile)
 	if e != nil {
 		return "", e
@@ -572,7 +576,7 @@ func (s *Service) AddTorrentFile(torrentFile string) (infoHash string, err error
 
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	err = s.addTorrentWithParams(torrentParams, infoHash, false)
+	err = s.addTorrentWithParams(torrentParams, infoHash, false, !download)
 	if err == nil {
 		torrentDst := s.torrentPath(infoHash)
 		if fi2, e := os.Stat(torrentDst); e != nil || !os.SameFile(fi, fi2) {
@@ -604,7 +608,7 @@ func (s *Service) addTorrentWithResumeData(fastResumeFile string) (err error) {
 				err = errors.New(errorCode.Message().(string))
 			} else {
 				infoHash := hex.EncodeToString([]byte(torrentParams.GetInfoHash().ToString()))
-				err = s.addTorrentWithParams(torrentParams, infoHash, true)
+				err = s.addTorrentWithParams(torrentParams, infoHash, true, false)
 			}
 		}
 	}
@@ -621,7 +625,7 @@ func (s *Service) loadTorrentFiles() {
 
 	files, _ := filepath.Glob(filepath.Join(s.config.TorrentsPath, "*.torrent"))
 	for _, torrentFile := range files {
-		if infoHash, err := s.AddTorrentFile(torrentFile); err == LoadTorrentError {
+		if infoHash, err := s.AddTorrentFile(torrentFile, false); err == LoadTorrentError {
 			s.deletePartsFile(infoHash)
 			s.deleteFastResumeFile(infoHash)
 			s.deleteTorrentFile(infoHash)

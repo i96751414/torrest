@@ -37,6 +37,12 @@
                         "description": "ignore if duplicate",
                         "name": "ignore_duplicate",
                         "in": "query"
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "start downloading",
+                        "name": "download",
+                        "in": "query"
                     }
                 ],
                 "responses": {
@@ -84,6 +90,12 @@
                         "type": "boolean",
                         "description": "ignore if duplicate",
                         "name": "ignore_duplicate",
+                        "in": "query"
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "start downloading",
+                        "name": "download",
                         "in": "query"
                     }
                 ],

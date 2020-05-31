@@ -57,6 +57,7 @@ func resume(service *bittorrent.Service) gin.HandlerFunc {
 // @Produce json
 // @Param uri query string true "magnet URI"
 // @Param ignore_duplicate query boolean false "ignore if duplicate"
+// @Param download query boolean false "start downloading"
 // @Success 200 {object} NewTorrentResponse
 // @Failure 400 {object} ErrorResponse
 // @Failure 500 {object} ErrorResponse
@@ -68,7 +69,8 @@ func addMagnet(service *bittorrent.Service) gin.HandlerFunc {
 			ctx.JSON(http.StatusBadRequest, NewErrorResponse("Invalid magnet provided"))
 			return
 		}
-		if infoHash, err := service.AddMagnet(magnet); err == nil ||
+		download := ctx.DefaultQuery("download", "false") == "true"
+		if infoHash, err := service.AddMagnet(magnet, download); err == nil ||
 			(err == bittorrent.DuplicateTorrentError &&
 				ctx.DefaultQuery("ignore_duplicate", "false") == "true") {
 			ctx.JSON(http.StatusOK, NewTorrentResponse{InfoHash: infoHash})
@@ -85,6 +87,7 @@ func addMagnet(service *bittorrent.Service) gin.HandlerFunc {
 // @Produce json
 // @Param torrent formData file true "torrent file"
 // @Param ignore_duplicate query boolean false "ignore if duplicate"
+// @Param download query boolean false "start downloading"
 // @Success 200 {object} NewTorrentResponse
 // @Failure 400 {object} ErrorResponse
 // @Failure 500 {object} ErrorResponse
@@ -99,7 +102,8 @@ func addTorrent(service *bittorrent.Service) gin.HandlerFunc {
 			if file, err = f.Open(); err == nil {
 				data := make([]byte, f.Size)
 				if _, err = file.Read(data); err == nil {
-					if infoHash, err = service.AddTorrentData(data); err == nil ||
+					download := ctx.DefaultQuery("download", "false") == "true"
+					if infoHash, err = service.AddTorrentData(data, download); err == nil ||
 						(err == bittorrent.DuplicateTorrentError &&
 							ctx.DefaultQuery("ignore_duplicate", "false") == "true") {
 						ctx.JSON(http.StatusOK, NewTorrentResponse{InfoHash: infoHash})

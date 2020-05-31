@@ -247,6 +247,10 @@ paths:
         in: query
         name: ignore_duplicate
         type: boolean
+      - description: start downloading
+        in: query
+        name: download
+        type: boolean
       produces:
       - application/json
       responses:
@@ -278,6 +282,10 @@ paths:
       - description: ignore if duplicate
         in: query
         name: ignore_duplicate
+        type: boolean
+      - description: start downloading
+        in: query
+        name: download
         type: boolean
       produces:
       - application/json
