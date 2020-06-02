@@ -40,7 +40,7 @@ type Torrent struct {
 	service      *Service
 	handle       libtorrent.TorrentHandle
 	infoHash     string
-	mu           *sync.RWMutex
+	mu           *sync.Mutex
 	closing      chan interface{}
 	isPaused     bool
 	files        []*File
@@ -98,7 +98,7 @@ func NewTorrent(service *Service, handle libtorrent.TorrentHandle, infoHash stri
 		service:  service,
 		handle:   handle,
 		infoHash: infoHash,
-		mu:       &sync.RWMutex{},
+		mu:       &sync.Mutex{},
 		closing:  make(chan interface{}),
 		isPaused: paused,
 	}

@@ -2,11 +2,13 @@ package bittorrent
 
 import (
 	"path/filepath"
+	"sync"
 
 	"github.com/i96751414/libtorrent-go"
 )
 
 type File struct {
+	mu           *sync.RWMutex
 	torrent      *Torrent
 	index        int
 	offset       int64
@@ -39,6 +41,7 @@ type FileStatus struct {
 
 func NewFile(torrent *Torrent, storage libtorrent.FileStorage, index int) *File {
 	f := &File{
+		mu:          &sync.RWMutex{},
 		torrent:     torrent,
 		index:       index,
 		offset:      storage.FileOffset(index),
@@ -68,13 +71,15 @@ func (f *File) Info() *FileInfo {
 }
 
 func (f *File) Status() *FileStatus {
+	f.mu.RLock()
+	defer f.mu.RUnlock()
 	return &FileStatus{
 		Total:             f.length,
 		TotalDone:         f.BytesCompleted(),
 		Progress:          f.GetProgress(),
 		Priority:          f.priority,
 		BufferingTotal:    f.bufferSize,
-		BufferingProgress: f.GetBufferingProgress(),
+		BufferingProgress: f.getBufferingProgress(),
 		State:             f.GetState(),
 	}
 }
@@ -125,6 +130,9 @@ func (f *File) BytesCompleted() int64 {
 }
 
 func (f *File) SetPriority(priority uint) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+
 	f.priority = priority
 	if priority == DontDownloadPriority {
 		f.isBuffering = false
@@ -144,6 +152,9 @@ func (f *File) addBufferPiece(piece int, info libtorrent.TorrentInfo) {
 }
 
 func (f *File) Buffer(startBufferSize, endBufferSize int64) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+
 	f.bufferSize = 0
 	f.bufferPieces = nil
 	info := f.torrent.handle.TorrentFile()
@@ -169,25 +180,45 @@ func (f *File) Buffer(startBufferSize, endBufferSize int64) {
 	f.torrent.service.setBufferingRateLimit(false)
 }
 
-func (f *File) BufferLength() int64 {
-	return f.bufferSize
-}
-
 func (f *File) bufferBytesMissing() int64 {
 	return f.torrent.piecesBytesMissing(f.bufferPieces)
 }
 
-func (f *File) BufferBytesCompleted() int64 {
+func (f *File) bufferBytesCompleted() int64 {
 	return f.bufferSize - f.bufferBytesMissing()
 }
 
-func (f *File) GetBufferingProgress() float64 {
+func (f *File) getBufferingProgress() float64 {
 	if f.bufferSize == 0 || !f.isBuffering {
 		return 100
 	}
-	return float64(f.BufferBytesCompleted()) / float64(f.bufferSize) * 100.0
+	return float64(f.bufferBytesCompleted()) / float64(f.bufferSize) * 100.0
 }
 
 func (f *File) GetState() LTStatus {
 	return f.torrent.getState(f)
+}
+
+func (f *File) GetBufferingProgress() float64 {
+	f.mu.RLock()
+	defer f.mu.RUnlock()
+	return f.getBufferingProgress()
+}
+
+func (f *File) BufferLength() int64 {
+	f.mu.RLock()
+	defer f.mu.RUnlock()
+	return f.bufferSize
+}
+
+func (f *File) BufferBytesMissing() int64 {
+	f.mu.RLock()
+	defer f.mu.RUnlock()
+	return f.bufferBytesMissing()
+}
+
+func (f *File) BufferBytesCompleted() int64 {
+	f.mu.RLock()
+	defer f.mu.RUnlock()
+	return f.bufferBytesCompleted()
 }

@@ -197,7 +197,7 @@ func (s *Service) saveResumeDataLoop() {
 		case <-s.closing:
 			return
 		case <-time.After(time.Duration(s.config.SessionSave) * time.Second):
-			s.mu.Lock()
+			s.mu.RLock()
 			for _, torrent := range s.torrents {
 				if torrent.handle.IsValid() {
 					status := torrent.handle.Status()
@@ -206,7 +206,7 @@ func (s *Service) saveResumeDataLoop() {
 					}
 				}
 			}
-			s.mu.Unlock()
+			s.mu.RUnlock()
 		}
 	}
 }
@@ -664,7 +664,7 @@ func (s *Service) downloadProgress() {
 			hasFilesBuffering := false
 			bufferStateChanged := false
 
-			s.mu.Lock()
+			s.mu.RLock()
 
 			for _, t := range s.torrents {
 				if t.isPaused || !t.handle.IsValid() {
@@ -678,12 +678,14 @@ func (s *Service) downloadProgress() {
 
 				for _, f := range t.Files() {
 					if f.isBuffering {
+						f.mu.Lock()
 						if f.bufferBytesMissing() == 0 {
 							f.isBuffering = false
 							bufferStateChanged = true
 						} else {
 							hasFilesBuffering = true
 						}
+						f.mu.Unlock()
 					}
 				}
 
@@ -744,7 +746,7 @@ func (s *Service) downloadProgress() {
 				s.progress = 100
 			}
 
-			s.mu.Unlock()
+			s.mu.RUnlock()
 		}
 	}
 }
@@ -758,8 +760,8 @@ func (s *Service) Resume() {
 }
 
 func (s *Service) GetStatus() *ServiceStatus {
-	s.mu.Lock()
-	defer s.mu.Unlock()
+	s.mu.RLock()
+	defer s.mu.RUnlock()
 	return &ServiceStatus{
 		Progress:     s.progress,
 		DownloadRate: s.downloadRate,
@@ -770,8 +772,8 @@ func (s *Service) GetStatus() *ServiceStatus {
 }
 
 func (s *Service) Torrents() []*Torrent {
-	s.mu.Lock()
-	defer s.mu.Unlock()
+	s.mu.RLock()
+	defer s.mu.RUnlock()
 	torrents := make([]*Torrent, len(s.torrents))
 	copy(torrents, s.torrents)
 	return torrents
@@ -787,8 +789,8 @@ func (s *Service) getTorrent(infoHash string) (int, *Torrent, error) {
 }
 
 func (s *Service) GetTorrent(infoHash string) (*Torrent, error) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
+	s.mu.RLock()
+	defer s.mu.RUnlock()
 	_, t, e := s.getTorrent(infoHash)
 	return t, e
 }
