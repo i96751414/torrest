@@ -966,6 +966,9 @@ var doc = `{
                 "buffering_progress": {
                     "type": "number"
                 },
+                "buffering_total": {
+                    "type": "integer"
+                },
                 "priority": {
                     "type": "integer"
                 },

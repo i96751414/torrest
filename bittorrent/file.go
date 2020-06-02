@@ -32,6 +32,7 @@ type FileStatus struct {
 	TotalDone         int64    `json:"total_done"`
 	Progress          float64  `json:"progress"`
 	Priority          uint     `json:"priority"`
+	BufferingTotal    int64    `json:"buffering_total"`
 	BufferingProgress float64  `json:"buffering_progress"`
 	State             LTStatus `json:"state"`
 }
@@ -72,6 +73,7 @@ func (f *File) Status() *FileStatus {
 		TotalDone:         f.BytesCompleted(),
 		Progress:          f.GetProgress(),
 		Priority:          f.priority,
+		BufferingTotal:    f.bufferSize,
 		BufferingProgress: f.GetBufferingProgress(),
 		State:             f.GetState(),
 	}
@@ -167,15 +169,23 @@ func (f *File) Buffer(startBufferSize, endBufferSize int64) {
 	f.torrent.service.setBufferingRateLimit(false)
 }
 
+func (f *File) BufferLength() int64 {
+	return f.bufferSize
+}
+
 func (f *File) bufferBytesMissing() int64 {
 	return f.torrent.piecesBytesMissing(f.bufferPieces)
+}
+
+func (f *File) BufferBytesCompleted() int64 {
+	return f.bufferSize - f.bufferBytesMissing()
 }
 
 func (f *File) GetBufferingProgress() float64 {
 	if f.bufferSize == 0 || !f.isBuffering {
 		return 100
 	}
-	return float64(f.bufferSize-f.bufferBytesMissing()) / float64(f.bufferSize) * 100.0
+	return float64(f.BufferBytesCompleted()) / float64(f.bufferSize) * 100.0
 }
 
 func (f *File) GetState() LTStatus {
