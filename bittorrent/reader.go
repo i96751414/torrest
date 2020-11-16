@@ -41,7 +41,7 @@ func newReader(torrent *Torrent, offset, length, pieceLength int64, readAhead fl
 		closing:        make(chan interface{}),
 	}
 	r.firstPiece = r.pieceFromOffset(0)
-	r.lastPiece = r.pieceFromOffset(length)
+	r.lastPiece = r.pieceFromOffset(length - 1)
 	return r
 }
 
@@ -107,7 +107,7 @@ func (r *reader) Read(b []byte) (int, error) {
 	defer r.mu.Unlock()
 
 	startPiece := r.pieceFromOffset(r.pos)
-	endPiece := r.pieceFromOffset(r.pos + int64(len(b)))
+	endPiece := r.pieceFromOffset(r.pos + int64(len(b)) - 1)
 	r.setPiecesPriorities(startPiece, endPiece-startPiece)
 	for p := startPiece; p <= endPiece; p++ {
 		if !r.torrent.handle.HavePiece(p) {
@@ -166,12 +166,12 @@ func (r *reader) Seek(off int64, whence int) (int64, error) {
 	case io.SeekCurrent:
 		off += r.pos
 	case io.SeekEnd:
-		off = r.length - off
+		off += r.length
 	default:
 		off = -1
 	}
 
-	if off < 0 || off > r.length {
+	if off < 0 {
 		return off, InvalidWhenceError
 	}
 

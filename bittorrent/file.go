@@ -117,7 +117,7 @@ func (f *File) getPiecesIndexes(off, length int64) (firstPieceIndex, endPieceInd
 		end = f.length
 	}
 	firstPieceIndex = int((f.offset + off) / f.pieceLength)
-	endPieceIndex = int((f.offset + end) / f.pieceLength)
+	endPieceIndex = int((f.offset + end - 1) / f.pieceLength)
 	return
 }
 
