@@ -196,7 +196,7 @@ func (s *Service) saveResumeDataLoop() {
 		select {
 		case <-s.closing:
 			return
-		case <-time.After(time.Duration(s.config.SessionSave) * time.Second):
+		case <-time.After(s.config.SessionSave * time.Second):
 			s.mu.RLock()
 			for _, torrent := range s.torrents {
 				if torrent.handle.IsValid() {
@@ -358,7 +358,7 @@ func (s *Service) configure() {
 
 	if s.config.Proxy != nil && s.config.Proxy.Type != settings.ProxyTypeNone {
 		log.Debug("Applying proxy settings...")
-		s.settingsPack.SetInt("proxy_type", s.config.Proxy.Type)
+		s.settingsPack.SetInt("proxy_type", int(s.config.Proxy.Type))
 		s.settingsPack.SetInt("proxy_port", s.config.Proxy.Port)
 		s.settingsPack.SetStr("proxy_hostname", s.config.Proxy.Hostname)
 		s.settingsPack.SetStr("proxy_username", s.config.Proxy.Username)
