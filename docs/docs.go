@@ -1159,6 +1159,10 @@ var doc = `{
                 "outgoing_interfaces": {
                     "type": "string"
                 },
+                "piece_wait_timeout": {
+                    "type": "integer",
+                    "example": 60
+                },
                 "proxy": {
                     "type": "object",
                     "$ref": "#/definitions/settings.ProxySettings"

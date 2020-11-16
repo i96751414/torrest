@@ -86,6 +86,7 @@ type Settings struct {
 	EncryptionPolicy    EncryptionPolicy `json:"encryption_policy" validate:"gte=0,lte=2" example:"0"`
 	Proxy               *ProxySettings   `json:"proxy"`
 	BufferSize          int64            `json:"buffer_size" example:"20971520"`
+	PieceWaitTimeout    time.Duration    `json:"piece_wait_timeout" validate:"gte=0" example:"60" swaggertype:"integer"`
 	ServiceLogLevel     logging.Level    `json:"service_log_level" validate:"gte=0,lte=5" example:"4" swaggertype:"integer"`
 	AlertsLogLevel      logging.Level    `json:"alerts_log_level" validate:"gte=0,lte=5" example:"0" swaggertype:"integer"`
 }
@@ -113,6 +114,7 @@ func DefaultSettings() *Settings {
 		EncryptionPolicy:    EncryptionEnabledPolicy,
 		Proxy:               nil,
 		BufferSize:          20 * 1024 * 1024,
+		PieceWaitTimeout:    60,
 		ServiceLogLevel:     logging.INFO,
 		AlertsLogLevel:      logging.CRITICAL,
 	}

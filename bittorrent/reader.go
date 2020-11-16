@@ -11,34 +11,35 @@ import (
 
 const (
 	piecesRefreshDuration = 500 * time.Millisecond
-	waitForPieceTimeout   = 60 * time.Second
 )
 
 type reader struct {
-	mu             *sync.Mutex
-	storage        libtorrent.StorageInterface
-	torrent        *Torrent
-	offset         int64
-	length         int64
-	pieceLength    int64
-	priorityPieces int
-	closing        chan interface{}
-	firstPiece     int
-	lastPiece      int
-	closeNotifiers []<-chan bool
-	pos            int64
+	mu               *sync.Mutex
+	storage          libtorrent.StorageInterface
+	torrent          *Torrent
+	offset           int64
+	length           int64
+	pieceLength      int64
+	priorityPieces   int
+	closing          chan interface{}
+	firstPiece       int
+	lastPiece        int
+	closeNotifiers   []<-chan bool
+	pos              int64
+	pieceWaitTimeout time.Duration
 }
 
 func newReader(torrent *Torrent, offset, length, pieceLength int64, readAhead float64) *reader {
 	r := &reader{
-		mu:             &sync.Mutex{},
-		storage:        torrent.handle.GetStorageImpl(),
-		torrent:        torrent,
-		offset:         offset,
-		length:         length,
-		pieceLength:    pieceLength,
-		priorityPieces: int(0.5 + readAhead*float64(length)/float64(pieceLength)),
-		closing:        make(chan interface{}),
+		mu:               &sync.Mutex{},
+		storage:          torrent.handle.GetStorageImpl(),
+		torrent:          torrent,
+		offset:           offset,
+		length:           length,
+		pieceLength:      pieceLength,
+		priorityPieces:   int(0.5 + readAhead*float64(length)/float64(pieceLength)),
+		closing:          make(chan interface{}),
+		pieceWaitTimeout: torrent.service.config.PieceWaitTimeout * time.Second,
 	}
 	r.firstPiece = r.pieceFromOffset(0)
 	r.lastPiece = r.pieceFromOffset(length - 1)
@@ -111,7 +112,7 @@ func (r *reader) Read(b []byte) (int, error) {
 	r.setPiecesPriorities(startPiece, endPiece-startPiece)
 	for p := startPiece; p <= endPiece; p++ {
 		if !r.torrent.handle.HavePiece(p) {
-			if err := r.waitForPiece(p, waitForPieceTimeout); err != nil {
+			if err := r.waitForPiece(p, r.pieceWaitTimeout); err != nil {
 				return 0, err
 			}
 		}

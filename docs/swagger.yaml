@@ -192,6 +192,9 @@ definitions:
         type: integer
       outgoing_interfaces:
         type: string
+      piece_wait_timeout:
+        example: 60
+        type: integer
       proxy:
         $ref: '#/definitions/settings.ProxySettings'
         type: object
