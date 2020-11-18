@@ -32,6 +32,7 @@ jobs:
   build:
     name: Build binaries
     runs-on: ubuntu-latest
+    if: always()
     needs: create_release
     strategy:
       max-parallel: 5
