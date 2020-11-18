@@ -30,7 +30,7 @@ jobs:
           prerelease: false
 
   build:
-    name: Build binaries
+    name: Build
     runs-on: ubuntu-latest
     if: always()
     needs: create_release
@@ -60,12 +60,22 @@ jobs:
           make ${{ matrix.platform }}
 
       - name: Generate ${{ matrix.platform }} zip
+        id: generate_zip
         if: success() && github.event_name == 'create' && startsWith(github.ref, 'refs/tags/')
-        run: make zip PLATFORM=${{ matrix.platform }}
+        run: |
+          make zip PLATFORM=${{ matrix.platform }}
+          ASSET_PATH=$(ls build/binaries/*.zip)
+          echo "::set-output name=asset_path::${ASSET_PATH}"
+          echo "::set-output name=asset_name::$(basename "${ASSET_PATH}")"
 
-      - name: Upload ${{ matrix.platform }} zip to github release
+      - name: Upload Addon zip to github release
+        id: upload-release-asset
         if: success() && github.event_name == 'create' && startsWith(github.ref, 'refs/tags/')
-        uses: AButler/upload-release-assets@v2.0
+        uses: actions/upload-release-asset@v1.0.1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          files: /build/binaries/*.zip
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          upload_url: ${{ needs.create_release.outputs.upload_url }}
+          asset_path: ./${{ steps.generate_zip.outputs.asset_path }}
+          asset_name: ${{ steps.generate_zip.outputs.asset_name }}
+          asset_content_type: application/zip
