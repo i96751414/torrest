@@ -1,4 +1,4 @@
-Torrest [![Build Status](https://travis-ci.org/i96751414/torrest.svg?branch=master)](https://travis-ci.org/i96751414/torrest)
+Torrest [![Build Status](https://github.com/i96751414/torrest/workflows/build/badge.svg)](https://github.com/i96751414/torrest/actions?query=workflow%3Abuild)
 =======
 
 Torrent service with a REST api, specially made for streaming.
