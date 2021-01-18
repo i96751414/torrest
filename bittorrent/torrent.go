@@ -344,7 +344,7 @@ func (t *Torrent) checkAvailableSpace() {
 		log.Infof("Available space: %s", humanize.Bytes(uint64(availableSpace)))
 
 		if availableSpace < sizeLeft {
-			log.Errorf("Unsufficient free space on %s. Has %d, needs %d.", path, diskStatus.Free, sizeLeft)
+			log.Errorf("Insufficient free space on %s. Has %d, needs %d.", path, diskStatus.Free, sizeLeft)
 			log.Infof("Pausing torrent %s", t.handle.Status(libtorrent.TorrentHandleQueryName).GetName())
 			t.Pause()
 		} else {
