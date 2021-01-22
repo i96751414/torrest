@@ -220,6 +220,8 @@ func (s *Service) Close() {
 }
 
 func (s *Service) Reconfigure(config *settings.Settings) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	createDir(config.DownloadPath)
 	createDir(config.TorrentsPath)
 	s.reset()
@@ -553,6 +555,12 @@ func (s *Service) AddTorrentData(data []byte, download bool) (infoHash string, e
 }
 
 func (s *Service) AddTorrentFile(torrentFile string, download bool) (infoHash string, err error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.addTorrentFile(torrentFile, download)
+}
+
+func (s *Service) addTorrentFile(torrentFile string, download bool) (infoHash string, err error) {
 	fi, e := os.Stat(torrentFile)
 	if e != nil {
 		return "", e
@@ -572,8 +580,6 @@ func (s *Service) AddTorrentFile(torrentFile string, download bool) (infoHash st
 	torrentParams.SetTorrentInfo(info)
 	infoHash = hex.EncodeToString([]byte(info.InfoHash().ToString()))
 
-	s.mu.Lock()
-	defer s.mu.Unlock()
 	err = s.addTorrentWithParams(torrentParams, infoHash, false, !download)
 	if err == nil {
 		torrentDst := s.torrentPath(infoHash)
@@ -623,7 +629,7 @@ func (s *Service) loadTorrentFiles() {
 
 	files, _ := filepath.Glob(filepath.Join(s.config.TorrentsPath, "*.torrent"))
 	for _, torrentFile := range files {
-		if infoHash, err := s.AddTorrentFile(torrentFile, false); err == LoadTorrentError {
+		if infoHash, err := s.addTorrentFile(torrentFile, false); err == LoadTorrentError {
 			s.deletePartsFile(infoHash)
 			s.deleteFastResumeFile(infoHash)
 			s.deleteTorrentFile(infoHash)
