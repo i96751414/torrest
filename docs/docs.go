@@ -1109,6 +1109,34 @@ var doc = `{
                 "torrents_path"
             ],
             "properties": {
+                "active_checking_limit": {
+                    "type": "integer",
+                    "example": 1
+                },
+                "active_dht_limit": {
+                    "type": "integer",
+                    "example": 88
+                },
+                "active_downloads_limit": {
+                    "type": "integer",
+                    "example": 3
+                },
+                "active_limit": {
+                    "type": "integer",
+                    "example": 500
+                },
+                "active_lsd_limit": {
+                    "type": "integer",
+                    "example": 60
+                },
+                "active_seeds_limit": {
+                    "type": "integer",
+                    "example": 5
+                },
+                "active_tracker_limit": {
+                    "type": "integer",
+                    "example": 1600
+                },
                 "alerts_log_level": {
                     "type": "integer",
                     "example": 0
@@ -1119,7 +1147,7 @@ var doc = `{
                 },
                 "connections_limit": {
                     "type": "integer",
-                    "example": 0
+                    "example": 200
                 },
                 "disable_dht": {
                     "type": "boolean",
@@ -1169,11 +1197,11 @@ var doc = `{
                 },
                 "seed_time_limit": {
                     "type": "integer",
-                    "example": 0
+                    "example": 86400
                 },
                 "seed_time_ratio_limit": {
                     "type": "integer",
-                    "example": 0
+                    "example": 700
                 },
                 "service_log_level": {
                     "type": "integer",
@@ -1185,7 +1213,7 @@ var doc = `{
                 },
                 "share_ratio_limit": {
                     "type": "integer",
-                    "example": 0
+                    "example": 200
                 },
                 "torrents_path": {
                     "type": "string",

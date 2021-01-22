@@ -313,14 +313,8 @@ func (s *Service) configure() {
 	}
 
 	if !s.config.LimitAfterBuffering {
-		if s.config.MaxDownloadRate > 0 {
-			log.Debugf("Rate limiting download to %dkB/s", s.config.MaxDownloadRate/1024)
-			s.settingsPack.SetInt("download_rate_limit", s.config.MaxDownloadRate)
-		}
-		if s.config.MaxUploadRate > 0 {
-			log.Debugf("Rate limiting upload to %dkB/s", s.config.MaxUploadRate/1024)
-			s.settingsPack.SetInt("upload_rate_limit", s.config.MaxUploadRate)
-		}
+		s.settingsPack.SetInt("download_rate_limit", s.config.MaxDownloadRate)
+		s.settingsPack.SetInt("upload_rate_limit", s.config.MaxUploadRate)
 	}
 
 	if s.config.ShareRatioLimit > 0 {
@@ -332,6 +326,14 @@ func (s *Service) configure() {
 	if s.config.SeedTimeLimit > 0 {
 		s.settingsPack.SetInt("seed_time_limit", s.config.SeedTimeLimit)
 	}
+
+	s.settingsPack.SetInt("active_downloads", s.config.ActiveDownloadsLimit)
+	s.settingsPack.SetInt("active_seeds", s.config.ActiveSeedsLimit)
+	s.settingsPack.SetInt("active_checking", s.config.ActiveCheckingLimit)
+	s.settingsPack.SetInt("active_dht_limit", s.config.ActiveDhtLimit)
+	s.settingsPack.SetInt("active_tracker_limit", s.config.ActiveTrackerLimit)
+	s.settingsPack.SetInt("active_lsd_limit", s.config.ActiveLsdLimit)
+	s.settingsPack.SetInt("active_limit", s.config.ActiveLimit)
 
 	if s.config.EncryptionPolicy == settings.EncryptionDisabledPolicy ||
 		s.config.EncryptionPolicy == settings.EncryptionForcedPolicy {
@@ -436,15 +438,8 @@ func (s *Service) configure() {
 func (s *Service) setBufferingRateLimit(enable bool) {
 	if s.config.LimitAfterBuffering {
 		if enable {
-			if s.config.MaxDownloadRate > 0 {
-				log.Debugf("Buffer filled, rate limiting download to %dkB/s", s.config.MaxDownloadRate/1024)
-				s.settingsPack.SetInt("download_rate_limit", s.config.MaxDownloadRate)
-			}
-			if s.config.MaxUploadRate > 0 {
-				// If we have an upload rate, use the nicer bittyrant choker
-				log.Debugf("Buffer filled, rate limiting upload to %dkB/s", s.config.MaxUploadRate/1024)
-				s.settingsPack.SetInt("upload_rate_limit", s.config.MaxUploadRate)
-			}
+			s.settingsPack.SetInt("download_rate_limit", s.config.MaxDownloadRate)
+			s.settingsPack.SetInt("upload_rate_limit", s.config.MaxUploadRate)
 		} else {
 			log.Debug("Resetting rate limiting")
 			s.settingsPack.SetInt("download_rate_limit", 0)
@@ -704,13 +699,12 @@ func (s *Service) downloadProgress() {
 				}
 
 				seedingTime := torrentStatus.GetSeedingDuration()
-				finishedTime := torrentStatus.GetFinishedDuration()
 				if progress == 100 && seedingTime == 0 {
-					seedingTime = finishedTime
+					seedingTime = torrentStatus.GetFinishedDuration()
 				}
 
 				if s.config.SeedTimeLimit > 0 {
-					if seedingTime >= s.config.SeedTimeLimit {
+					if seedingTime >= int64(s.config.SeedTimeLimit) {
 						log.Infof("Seeding time limit reached, pausing %s", torrentStatus.GetName())
 						t.Pause()
 						continue
@@ -719,7 +713,7 @@ func (s *Service) downloadProgress() {
 				if s.config.SeedTimeRatioLimit > 0 {
 					if downloadTime := torrentStatus.GetActiveDuration() - seedingTime; downloadTime > 1 {
 						timeRatio := seedingTime * 100 / downloadTime
-						if timeRatio >= s.config.SeedTimeRatioLimit {
+						if timeRatio >= int64(s.config.SeedTimeRatioLimit) {
 							log.Infof("Seeding time ratio reached, pausing %s", torrentStatus.GetName())
 							t.Pause()
 							continue

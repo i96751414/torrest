@@ -66,57 +66,71 @@ type ProxySettings struct {
 type Settings struct {
 	settingsPath string `json:"-"`
 
-	ListenPort          uint             `json:"listen_port" validate:"gte=0,lte=65535" example:"6889"`
-	ListenInterfaces    string           `json:"listen_interfaces" example:""`
-	OutgoingInterfaces  string           `json:"outgoing_interfaces" example:""`
-	DisableDHT          bool             `json:"disable_dht" example:"false"`
-	DisableUPNP         bool             `json:"disable_upnp" example:"false"`
-	DownloadPath        string           `json:"download_path" validate:"required" example:"downloads"`
-	TorrentsPath        string           `json:"torrents_path" validate:"required" example:"downloads/Torrents"`
-	UserAgent           UserAgentType    `json:"user_agent" validate:"gte=0,lte=6" example:"0"`
-	SessionSave         time.Duration    `json:"session_save" validate:"gt=0" example:"30" swaggertype:"integer"`
-	TunedStorage        bool             `json:"tuned_storage" example:"false"`
-	ConnectionsLimit    int              `json:"connections_limit" example:"0"`
-	LimitAfterBuffering bool             `json:"limit_after_buffering" example:"false"`
-	MaxDownloadRate     int              `json:"max_download_rate" example:"0"`
-	MaxUploadRate       int              `json:"max_upload_rate" example:"0"`
-	ShareRatioLimit     int              `json:"share_ratio_limit" example:"0"`
-	SeedTimeRatioLimit  int64            `json:"seed_time_ratio_limit" example:"0"`
-	SeedTimeLimit       int64            `json:"seed_time_limit" example:"0"`
-	EncryptionPolicy    EncryptionPolicy `json:"encryption_policy" validate:"gte=0,lte=2" example:"0"`
-	Proxy               *ProxySettings   `json:"proxy"`
-	BufferSize          int64            `json:"buffer_size" example:"20971520"`
-	PieceWaitTimeout    time.Duration    `json:"piece_wait_timeout" validate:"gte=0" example:"60" swaggertype:"integer"`
-	ServiceLogLevel     logging.Level    `json:"service_log_level" validate:"gte=0,lte=5" example:"4" swaggertype:"integer"`
-	AlertsLogLevel      logging.Level    `json:"alerts_log_level" validate:"gte=0,lte=5" example:"0" swaggertype:"integer"`
+	ListenPort           uint             `json:"listen_port" validate:"gte=0,lte=65535" example:"6889"`
+	ListenInterfaces     string           `json:"listen_interfaces" example:""`
+	OutgoingInterfaces   string           `json:"outgoing_interfaces" example:""`
+	DisableDHT           bool             `json:"disable_dht" example:"false"`
+	DisableUPNP          bool             `json:"disable_upnp" example:"false"`
+	DownloadPath         string           `json:"download_path" validate:"required" example:"downloads"`
+	TorrentsPath         string           `json:"torrents_path" validate:"required" example:"downloads/Torrents"`
+	UserAgent            UserAgentType    `json:"user_agent" validate:"gte=0,lte=6" example:"0"`
+	SessionSave          time.Duration    `json:"session_save" validate:"gt=0" example:"30" swaggertype:"integer"`
+	TunedStorage         bool             `json:"tuned_storage" example:"false"`
+	ConnectionsLimit     int              `json:"connections_limit" example:"200"`
+	LimitAfterBuffering  bool             `json:"limit_after_buffering" example:"false"`
+	MaxDownloadRate      int              `json:"max_download_rate" validate:"gte=0" example:"0"`
+	MaxUploadRate        int              `json:"max_upload_rate" validate:"gte=0" example:"0"`
+	ShareRatioLimit      int              `json:"share_ratio_limit" validate:"gte=0" example:"200"`
+	SeedTimeRatioLimit   int              `json:"seed_time_ratio_limit" validate:"gte=0" example:"700"`
+	SeedTimeLimit        int              `json:"seed_time_limit" validate:"gte=0" example:"86400"`
+	ActiveDownloadsLimit int              `json:"active_downloads_limit" example:"3"`
+	ActiveSeedsLimit     int              `json:"active_seeds_limit" example:"5"`
+	ActiveCheckingLimit  int              `json:"active_checking_limit" example:"1"`
+	ActiveDhtLimit       int              `json:"active_dht_limit" example:"88"`
+	ActiveTrackerLimit   int              `json:"active_tracker_limit" example:"1600"`
+	ActiveLsdLimit       int              `json:"active_lsd_limit" example:"60"`
+	ActiveLimit          int              `json:"active_limit" example:"500"`
+	EncryptionPolicy     EncryptionPolicy `json:"encryption_policy" validate:"gte=0,lte=2" example:"0"`
+	Proxy                *ProxySettings   `json:"proxy"`
+	BufferSize           int64            `json:"buffer_size" example:"20971520"`
+	PieceWaitTimeout     time.Duration    `json:"piece_wait_timeout" validate:"gte=0" example:"60" swaggertype:"integer"`
+	ServiceLogLevel      logging.Level    `json:"service_log_level" validate:"gte=0,lte=5" example:"4" swaggertype:"integer"`
+	AlertsLogLevel       logging.Level    `json:"alerts_log_level" validate:"gte=0,lte=5" example:"0" swaggertype:"integer"`
 }
 
 func DefaultSettings() *Settings {
 	return &Settings{
-		settingsPath:        "settings.json",
-		ListenPort:          6889,
-		ListenInterfaces:    "",
-		OutgoingInterfaces:  "",
-		DisableDHT:          false,
-		DisableUPNP:         false,
-		DownloadPath:        "downloads",
-		TorrentsPath:        filepath.Join("downloads", "Torrents"),
-		UserAgent:           DefaultUA,
-		SessionSave:         30,
-		TunedStorage:        false,
-		ConnectionsLimit:    0,
-		LimitAfterBuffering: false,
-		MaxDownloadRate:     0,
-		MaxUploadRate:       0,
-		ShareRatioLimit:     0,
-		SeedTimeRatioLimit:  0,
-		SeedTimeLimit:       0,
-		EncryptionPolicy:    EncryptionEnabledPolicy,
-		Proxy:               nil,
-		BufferSize:          20 * 1024 * 1024,
-		PieceWaitTimeout:    60,
-		ServiceLogLevel:     logging.INFO,
-		AlertsLogLevel:      logging.CRITICAL,
+		settingsPath:         "settings.json",
+		ListenPort:           6889,
+		ListenInterfaces:     "",
+		OutgoingInterfaces:   "",
+		DisableDHT:           false,
+		DisableUPNP:          false,
+		DownloadPath:         "downloads",
+		TorrentsPath:         filepath.Join("downloads", "Torrents"),
+		UserAgent:            DefaultUA,
+		SessionSave:          30,
+		TunedStorage:         false,
+		ConnectionsLimit:     0,
+		LimitAfterBuffering:  false,
+		MaxDownloadRate:      0,
+		MaxUploadRate:        0,
+		ShareRatioLimit:      0,
+		SeedTimeRatioLimit:   0,
+		SeedTimeLimit:        0,
+		ActiveDownloadsLimit: 3,
+		ActiveSeedsLimit:     5,
+		ActiveCheckingLimit:  1,
+		ActiveDhtLimit:       88,
+		ActiveTrackerLimit:   1600,
+		ActiveLsdLimit:       60,
+		ActiveLimit:          500,
+		EncryptionPolicy:     EncryptionEnabledPolicy,
+		Proxy:                nil,
+		BufferSize:           20 * 1024 * 1024,
+		PieceWaitTimeout:     60,
+		ServiceLogLevel:      logging.INFO,
+		AlertsLogLevel:       logging.CRITICAL,
 	}
 }
 

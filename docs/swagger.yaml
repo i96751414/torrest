@@ -155,6 +155,27 @@ definitions:
     type: object
   settings.Settings:
     properties:
+      active_checking_limit:
+        example: 1
+        type: integer
+      active_dht_limit:
+        example: 88
+        type: integer
+      active_downloads_limit:
+        example: 3
+        type: integer
+      active_limit:
+        example: 500
+        type: integer
+      active_lsd_limit:
+        example: 60
+        type: integer
+      active_seeds_limit:
+        example: 5
+        type: integer
+      active_tracker_limit:
+        example: 1600
+        type: integer
       alerts_log_level:
         example: 0
         type: integer
@@ -162,7 +183,7 @@ definitions:
         example: 20971520
         type: integer
       connections_limit:
-        example: 0
+        example: 200
         type: integer
       disable_dht:
         example: false
@@ -199,10 +220,10 @@ definitions:
         $ref: '#/definitions/settings.ProxySettings'
         type: object
       seed_time_limit:
-        example: 0
+        example: 86400
         type: integer
       seed_time_ratio_limit:
-        example: 0
+        example: 700
         type: integer
       service_log_level:
         example: 4
@@ -211,7 +232,7 @@ definitions:
         example: 30
         type: integer
       share_ratio_limit:
-        example: 0
+        example: 200
         type: integer
       torrents_path:
         example: downloads/Torrents
