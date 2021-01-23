@@ -1153,6 +1153,14 @@ var doc = `{
                     "type": "boolean",
                     "example": false
                 },
+                "disable_lsd": {
+                    "type": "boolean",
+                    "example": false
+                },
+                "disable_natpmp": {
+                    "type": "boolean",
+                    "example": false
+                },
                 "disable_upnp": {
                     "type": "boolean",
                     "example": false

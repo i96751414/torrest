@@ -71,6 +71,8 @@ type Settings struct {
 	OutgoingInterfaces   string           `json:"outgoing_interfaces" example:""`
 	DisableDHT           bool             `json:"disable_dht" example:"false"`
 	DisableUPNP          bool             `json:"disable_upnp" example:"false"`
+	DisableNatPMP        bool             `json:"disable_natpmp" example:"false"`
+	DisableLSD           bool             `json:"disable_lsd" example:"false"`
 	DownloadPath         string           `json:"download_path" validate:"required" example:"downloads"`
 	TorrentsPath         string           `json:"torrents_path" validate:"required" example:"downloads/Torrents"`
 	UserAgent            UserAgentType    `json:"user_agent" validate:"gte=0,lte=6" example:"0"`
@@ -106,6 +108,8 @@ func DefaultSettings() *Settings {
 		OutgoingInterfaces:   "",
 		DisableDHT:           false,
 		DisableUPNP:          false,
+		DisableNatPMP:        false,
+		DisableLSD:           false,
 		DownloadPath:         "downloads",
 		TorrentsPath:         filepath.Join("downloads", "Torrents"),
 		UserAgent:            DefaultUA,

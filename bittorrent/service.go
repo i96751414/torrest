@@ -72,6 +72,7 @@ func NewService(config *settings.Settings) *Service {
 }
 
 func (s *Service) start(config *settings.Settings) {
+	log.Debug("Starting service")
 	s.config = config.Clone()
 	s.closing = make(chan interface{})
 
@@ -220,12 +221,12 @@ func (s *Service) Close() {
 }
 
 func (s *Service) Reconfigure(config *settings.Settings) {
+	log.Info("Reconfiguring Service...")
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	createDir(config.DownloadPath)
 	createDir(config.TorrentsPath)
 	s.reset()
-	s.wg.Wait()
 	s.start(config)
 }
 
@@ -409,29 +410,18 @@ func (s *Service) configure() {
 		s.settingsPack.SetStr("outgoing_interfaces", outInterfaces)
 	}
 
-	log.Debug("Starting LSD...")
-	s.settingsPack.SetBool("enable_lsd", true)
-
-	if !s.config.DisableDHT {
-		log.Debug("Starting DHT...")
-		s.settingsPack.SetStr("dht_bootstrap_nodes", strings.Join([]string{
-			"router.utorrent.com:6881",
-			"router.bittorrent.com:6881",
-			"dht.transmissionbt.com:6881",
-			"dht.aelitis.com:6881",     // Vuze
-			"router.silotis.us:6881",   // IPv6
-			"dht.libtorrent.org:25401", // @arvidn's
-		}, ","))
-		s.settingsPack.SetBool("enable_dht", true)
-	}
-
-	if !s.config.DisableUPNP {
-		log.Debug("Starting UPNP...")
-		s.settingsPack.SetBool("enable_upnp", true)
-
-		log.Debug("Starting NATPMP...")
-		s.settingsPack.SetBool("enable_natpmp", true)
-	}
+	s.settingsPack.SetStr("dht_bootstrap_nodes", strings.Join([]string{
+		"router.utorrent.com:6881",
+		"router.bittorrent.com:6881",
+		"dht.transmissionbt.com:6881",
+		"dht.aelitis.com:6881",     // Vuze
+		"router.silotis.us:6881",   // IPv6
+		"dht.libtorrent.org:25401", // @arvidn's
+	}, ","))
+	s.settingsPack.SetBool("enable_dht", !s.config.DisableDHT)
+	s.settingsPack.SetBool("enable_upnp", !s.config.DisableUPNP)
+	s.settingsPack.SetBool("enable_natpmp", !s.config.DisableNatPMP)
+	s.settingsPack.SetBool("enable_lsd", !s.config.DisableLSD)
 
 	s.session = libtorrent.NewSession(s.settingsPack, libtorrent.SessionHandleAddDefaultPlugins)
 	log.Debug("Configuration done")
@@ -452,27 +442,19 @@ func (s *Service) setBufferingRateLimit(enable bool) {
 }
 
 func (s *Service) reset() {
-	defer libtorrent.DeleteSession(s.session)
-	defer libtorrent.DeleteSettingsPack(s.settingsPack)
-	defer close(s.closing)
-
-	log.Debug("Stopping LSD...")
+	log.Debug("Stopping LSD/DHT/UPNP/NAT-PPM")
 	s.settingsPack.SetBool("enable_lsd", false)
-
-	if !s.config.DisableDHT {
-		log.Debug("Stopping DHT...")
-		s.settingsPack.SetBool("enable_dht", false)
-	}
-
-	if !s.config.DisableUPNP {
-		log.Debug("Stopping UPNP...")
-		s.settingsPack.SetBool("enable_upnp", false)
-
-		log.Debug("Stopping NATPMP...")
-		s.settingsPack.SetBool("enable_natpmp", false)
-	}
-
+	s.settingsPack.SetBool("enable_dht", false)
+	s.settingsPack.SetBool("enable_upnp", false)
+	s.settingsPack.SetBool("enable_natpmp", false)
 	s.session.ApplySettings(s.settingsPack)
+
+	log.Debug("Closing service routines")
+	close(s.closing)
+	s.wg.Wait()
+	log.Debug("Destroying service")
+	libtorrent.DeleteSettingsPack(s.settingsPack)
+	libtorrent.DeleteSession(s.session)
 }
 
 func (s *Service) addTorrentWithParams(torrentParams libtorrent.AddTorrentParams, infoHash string, isResumeData, noDownload bool) error {

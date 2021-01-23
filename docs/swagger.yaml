@@ -188,6 +188,12 @@ definitions:
       disable_dht:
         example: false
         type: boolean
+      disable_lsd:
+        example: false
+        type: boolean
+      disable_natpmp:
+        example: false
+        type: boolean
       disable_upnp:
         example: false
         type: boolean
