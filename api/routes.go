@@ -56,9 +56,8 @@ func Routes(config *settings.Settings, service *bittorrent.Service) *gin.Engine 
 	gin.SetMode(gin.ReleaseMode)
 
 	r := gin.New()
-	r.Use(gin.Recovery())
-	r.Use(gin.LoggerWithWriter(gin.DefaultWriter))
-	r.Use(CORSMiddleware())
+	// We could use gin.Recovery(), however it is most likely we would suppress bittorrent panics
+	r.Use(gin.LoggerWithWriter(gin.DefaultWriter), CORSMiddleware())
 
 	r.GET("/status", status(service))
 	r.GET("/pause", pause(service))
