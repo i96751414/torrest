@@ -462,7 +462,7 @@ func (s *Service) addTorrentWithParams(torrentParams libtorrent.AddTorrentParams
 		log.Debugf("Setting params for '%s' torrent", infoHash)
 		torrentParams.SetSavePath(s.config.DownloadPath)
 		// torrentParams.SetStorageMode(libtorrent.StorageModeAllocate)
-		torrentParams.SetFlags(libtorrent.GetSequentialDownload())
+		torrentParams.SetFlags(torrentParams.GetFlags() | libtorrent.GetSequentialDownload())
 	}
 
 	if noDownload {

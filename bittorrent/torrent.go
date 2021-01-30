@@ -123,6 +123,9 @@ func (t *Torrent) getState(file ...*File) LTStatus {
 	if t.isPaused {
 		return PausedStatus
 	}
+	if hasFlagsUint64(t.handle.Flags(), libtorrent.GetPaused()|libtorrent.GetAutoManaged()) {
+		return QueuedStatus
+	}
 	state := LTStatus(t.handle.Status().GetState())
 	if state == DownloadingStatus {
 		downloading := false
