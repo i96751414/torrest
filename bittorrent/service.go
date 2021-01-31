@@ -39,6 +39,13 @@ const (
 	ipToSLowCost     = 1 << iota
 )
 
+const (
+	extTorrent    = ".torrent"
+	extMagnet     = ".magnet"
+	extParts      = ".parts"
+	extFastResume = ".fastresume"
+)
+
 // Service represents the torrent service
 type Service struct {
 	session      libtorrent.Session
@@ -60,6 +67,11 @@ type ServiceStatus struct {
 	UploadRate   int64   `json:"upload_rate"`
 	NumTorrents  int     `json:"num_torrents"`
 	IsPaused     bool    `json:"is_paused"`
+}
+
+type Magnet struct {
+	Uri      string
+	Download bool
 }
 
 // NewService creates a service given the provided configs
@@ -173,7 +185,9 @@ func (s *Service) onMetadataReceived(alert libtorrent.MetadataReceivedAlert) {
 	defer libtorrent.DeleteCreateTorrent(torrentFile)
 	torrentContent := torrentFile.Generate()
 	bEncodedTorrent := []byte(libtorrent.Bencode(torrentContent))
-	if err := ioutil.WriteFile(s.torrentPath(infoHash), bEncodedTorrent, 0644); err != nil {
+	if err := ioutil.WriteFile(s.torrentPath(infoHash), bEncodedTorrent, 0644); err == nil {
+		s.deleteMagnetFile(infoHash)
+	} else {
 		log.Errorf("Failed saving '%s.torrent': %s", infoHash, err)
 	}
 }
@@ -492,6 +506,12 @@ func (s *Service) addTorrentWithParams(torrentParams libtorrent.AddTorrentParams
 }
 
 func (s *Service) AddMagnet(magnet string, download bool) (infoHash string, err error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.addMagnet(magnet, download, true)
+}
+
+func (s *Service) addMagnet(magnet string, download, saveMagnet bool) (infoHash string, err error) {
 	torrentParams := libtorrent.NewAddTorrentParams()
 	defer libtorrent.DeleteAddTorrentParams(torrentParams)
 	errorCode := libtorrent.NewErrorCode()
@@ -503,10 +523,12 @@ func (s *Service) AddMagnet(magnet string, download bool) (infoHash string, err 
 	}
 
 	infoHash = getInfoHash(torrentParams.GetInfoHash())
-
-	s.mu.Lock()
-	defer s.mu.Unlock()
 	err = s.addTorrentWithParams(torrentParams, infoHash, false, !download)
+	if err == nil && saveMagnet {
+		if e := saveGobData(s.magnetFilePath(infoHash), Magnet{magnet, download}, 0644); e != nil {
+			log.Errorf("Failed saving magnet: %s", e)
+		}
+	}
 	return
 }
 
@@ -530,7 +552,7 @@ func (s *Service) AddTorrentData(data []byte, download bool) (infoHash string, e
 	err = s.addTorrentWithParams(torrentParams, infoHash, false, !download)
 	if err == nil {
 		if e := ioutil.WriteFile(s.torrentPath(infoHash), data, 0644); e != nil {
-			log.Errorf("Failed saving torrent: %s", err)
+			log.Errorf("Failed saving torrent: %s", e)
 		}
 	}
 	return
@@ -565,10 +587,10 @@ func (s *Service) addTorrentFile(torrentFile string, download bool) (infoHash st
 	err = s.addTorrentWithParams(torrentParams, infoHash, false, !download)
 	if err == nil {
 		torrentDst := s.torrentPath(infoHash)
-		if fi2, e := os.Stat(torrentDst); e != nil || !os.SameFile(fi, fi2) {
+		if fi2, e1 := os.Stat(torrentDst); e1 != nil || !os.SameFile(fi, fi2) {
 			log.Debugf("Copying torrent %s", infoHash)
-			if err := copyFileContents(torrentFile, torrentDst); err != nil {
-				log.Errorf("Failed copying torrent: %s", err)
+			if e2 := copyFileContents(torrentFile, torrentDst); e2 != nil {
+				log.Errorf("Failed copying torrent: %s", e2)
 			}
 		}
 	}
@@ -602,14 +624,14 @@ func (s *Service) addTorrentWithResumeData(fastResumeFile string) (err error) {
 }
 
 func (s *Service) loadTorrentFiles() {
-	resumeFiles, _ := filepath.Glob(filepath.Join(s.config.TorrentsPath, "*.fastresume"))
+	resumeFiles, _ := filepath.Glob(s.fastResumeFilePath("*"))
 	for _, fastResumeFile := range resumeFiles {
 		if err := s.addTorrentWithResumeData(fastResumeFile); err != nil {
 			log.Errorf("Failed adding torrent with resume data: %s", err)
 		}
 	}
 
-	files, _ := filepath.Glob(filepath.Join(s.config.TorrentsPath, "*.torrent"))
+	files, _ := filepath.Glob(s.torrentPath("*"))
 	for _, torrentFile := range files {
 		if infoHash, err := s.addTorrentFile(torrentFile, false); err == LoadTorrentError {
 			s.deletePartsFile(infoHash)
@@ -618,9 +640,21 @@ func (s *Service) loadTorrentFiles() {
 		}
 	}
 
-	partsFiles, _ := filepath.Glob(filepath.Join(s.config.DownloadPath, "*.parts"))
+	magnets, _ := filepath.Glob(s.magnetFilePath("*"))
+	for _, magnet := range magnets {
+		data := Magnet{}
+		if err := readGobData(magnet, &data); err == nil {
+			if _, e := s.addMagnet(data.Uri, data.Download, false); e == DuplicateTorrentError {
+				deleteFile(magnet)
+			}
+		} else {
+			log.Errorf("Failed to read magnet file '%s'", magnet)
+		}
+	}
+
+	partsFiles, _ := filepath.Glob(s.partsFilePath("*"))
 	for _, partsFile := range partsFiles {
-		infoHash := strings.TrimPrefix(strings.TrimSuffix(filepath.Base(partsFile), ".parts"), ".")
+		infoHash := strings.TrimPrefix(strings.TrimSuffix(filepath.Base(partsFile), extParts), ".")
 		if _, _, err := s.getTorrent(infoHash); err != nil {
 			log.Debugf("Cleaning up stale parts file '%s'", partsFiles)
 			deleteFile(partsFile)
@@ -803,7 +837,7 @@ func (s *Service) RemoveTorrent(infoHash string, removeFiles bool) error {
 }
 
 func (s *Service) partsFilePath(infoHash string) string {
-	return filepath.Join(s.config.DownloadPath, "."+infoHash+".parts")
+	return filepath.Join(s.config.DownloadPath, "."+infoHash+extParts)
 }
 
 func (s *Service) deletePartsFile(infoHash string) {
@@ -811,7 +845,7 @@ func (s *Service) deletePartsFile(infoHash string) {
 }
 
 func (s *Service) fastResumeFilePath(infoHash string) string {
-	return filepath.Join(s.config.TorrentsPath, infoHash+".fastresume")
+	return filepath.Join(s.config.TorrentsPath, infoHash+extFastResume)
 }
 
 func (s *Service) deleteFastResumeFile(infoHash string) {
@@ -819,9 +853,17 @@ func (s *Service) deleteFastResumeFile(infoHash string) {
 }
 
 func (s *Service) torrentPath(infoHash string) string {
-	return filepath.Join(s.config.TorrentsPath, infoHash+".torrent")
+	return filepath.Join(s.config.TorrentsPath, infoHash+extTorrent)
 }
 
 func (s *Service) deleteTorrentFile(infoHash string) {
 	deleteFile(s.torrentPath(infoHash))
+}
+
+func (s *Service) magnetFilePath(infoHash string) string {
+	return filepath.Join(s.config.TorrentsPath, infoHash+extMagnet)
+}
+
+func (s *Service) deleteMagnetFile(infoHash string) {
+	deleteFile(s.magnetFilePath(infoHash))
 }
