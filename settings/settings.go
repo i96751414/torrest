@@ -2,7 +2,6 @@ package settings
 
 import (
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"path/filepath"
 	"time"
@@ -172,7 +171,7 @@ func (s *Settings) Update(data []byte) (err error) {
 func (s *Settings) Clone() *Settings {
 	n := new(Settings)
 	if err := copier.Copy(n, s); err != nil {
-		panic(fmt.Sprintf("Failed cloning settings: %s", err))
+		panic("Failed cloning settings: " + err.Error())
 	}
 	return n
 }

@@ -240,7 +240,7 @@ func (s *Service) configure() {
 	if s.config.UserAgent > 0 {
 		switch s.config.UserAgent {
 		case settings.LibtorrentUA:
-			s.UserAgent = fmt.Sprintf("libtorrent/%s", libtorrent.Version())
+			s.UserAgent = "libtorrent/" + libtorrent.Version()
 		case settings.LibtorrentRasterbar_1_1_0_UA:
 			s.UserAgent = "libtorrent (Rasterbar) 1.1.0"
 		case settings.BitTorrent_7_5_0_UA:
@@ -803,7 +803,7 @@ func (s *Service) RemoveTorrent(infoHash string, removeFiles bool) error {
 }
 
 func (s *Service) partsFilePath(infoHash string) string {
-	return filepath.Join(s.config.DownloadPath, fmt.Sprintf(".%s.parts", infoHash))
+	return filepath.Join(s.config.DownloadPath, "."+infoHash+".parts")
 }
 
 func (s *Service) deletePartsFile(infoHash string) {
@@ -811,7 +811,7 @@ func (s *Service) deletePartsFile(infoHash string) {
 }
 
 func (s *Service) fastResumeFilePath(infoHash string) string {
-	return filepath.Join(s.config.TorrentsPath, fmt.Sprintf("%s.fastresume", infoHash))
+	return filepath.Join(s.config.TorrentsPath, infoHash+".fastresume")
 }
 
 func (s *Service) deleteFastResumeFile(infoHash string) {
@@ -819,7 +819,7 @@ func (s *Service) deleteFastResumeFile(infoHash string) {
 }
 
 func (s *Service) torrentPath(infoHash string) string {
-	return filepath.Join(s.config.TorrentsPath, fmt.Sprintf("%s.torrent", infoHash))
+	return filepath.Join(s.config.TorrentsPath, infoHash+".torrent")
 }
 
 func (s *Service) deleteTorrentFile(infoHash string) {

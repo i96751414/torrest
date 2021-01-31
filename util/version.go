@@ -1,8 +1,6 @@
 package util
 
 import (
-	"fmt"
-
 	"github.com/i96751414/libtorrent-go"
 )
 
@@ -15,5 +13,5 @@ func GetVersion() string {
 }
 
 func UserAgent() string {
-	return fmt.Sprintf("torrest/%s libtorrent/%s", GetVersion(), libtorrent.Version())
+	return "torrest/" + GetVersion() + " libtorrent/" + libtorrent.Version()
 }
