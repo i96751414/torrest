@@ -648,7 +648,7 @@ func (s *Service) loadTorrentFiles() {
 				deleteFile(magnet)
 			}
 		} else {
-			log.Errorf("Failed to read magnet file '%s'", magnet)
+			log.Errorf("Failed to read magnet file '%s': %s", magnet, err)
 		}
 	}
 
