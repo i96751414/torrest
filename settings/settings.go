@@ -78,6 +78,7 @@ type Settings struct {
 	UserAgent            UserAgentType    `json:"user_agent" validate:"gte=0,lte=6" example:"0"`
 	SessionSave          time.Duration    `json:"session_save" validate:"gt=0" example:"30" swaggertype:"integer"`
 	TunedStorage         bool             `json:"tuned_storage" example:"false"`
+	CheckAvailableSpace  bool             `json:"check_available_space" example:"true"`
 	ConnectionsLimit     int              `json:"connections_limit" example:"200"`
 	LimitAfterBuffering  bool             `json:"limit_after_buffering" example:"false"`
 	MaxDownloadRate      int              `json:"max_download_rate" validate:"gte=0" example:"0"`
@@ -115,6 +116,7 @@ func DefaultSettings() *Settings {
 		UserAgent:            DefaultUA,
 		SessionSave:          30,
 		TunedStorage:         false,
+		CheckAvailableSpace:  true,
 		ConnectionsLimit:     0,
 		LimitAfterBuffering:  false,
 		MaxDownloadRate:      0,

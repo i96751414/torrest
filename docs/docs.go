@@ -1145,6 +1145,10 @@ var doc = `{
                     "type": "integer",
                     "example": 20971520
                 },
+                "check_available_space": {
+                    "type": "boolean",
+                    "example": true
+                },
                 "connections_limit": {
                     "type": "integer",
                     "example": 200

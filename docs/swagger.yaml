@@ -182,6 +182,9 @@ definitions:
       buffer_size:
         example: 20971520
         type: integer
+      check_available_space:
+        example: true
+        type: boolean
       connections_limit:
         example: 200
         type: integer

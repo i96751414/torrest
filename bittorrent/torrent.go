@@ -325,35 +325,34 @@ func (t *Torrent) getFilesProgress(file ...*File) float64 {
 }
 
 func (t *Torrent) checkAvailableSpace() {
-	if t.spaceChecked {
+	if t.spaceChecked || !t.service.config.CheckAvailableSpace {
 		return
 	}
 	if diskStatus, err := diskusage.DiskUsage(t.service.config.DownloadPath); err != nil {
-		log.Warningf("Unable to retrieve the free space for %s, continuing anyway...", t.service.config.DownloadPath)
+		log.Warningf("Unable to retrieve the free space for %s", t.service.config.DownloadPath)
 		return
 	} else if diskStatus != nil {
-		torrentInfo := t.handle.TorrentFile()
-		if torrentInfo == nil || torrentInfo.Swigcptr() == 0 {
-			log.Warning("Missing torrent info to check available space.")
+		status := t.handle.Status(libtorrent.TorrentHandleQueryAccurateDownloadCounters |
+			libtorrent.TorrentHandleQuerySavePath | libtorrent.TorrentHandleQueryName)
+		if !status.GetHasMetadata() {
+			log.Warning("Missing torrent metadata to check available space")
 			return
 		}
 
-		status := t.handle.Status(libtorrent.TorrentHandleQueryAccurateDownloadCounters | libtorrent.TorrentHandleQuerySavePath)
-		totalSize := torrentInfo.TotalSize()
+		totalSize := status.GetTotal()
 		totalDone := status.GetTotalDone()
 		sizeLeft := totalSize - totalDone
 		path := status.GetSavePath()
 
-		log.Infof("Checking for sufficient space on %s...", path)
-		log.Infof("Total size of download: %s", humanize.Bytes(uint64(totalSize)))
-		log.Infof("All time download: %s", humanize.Bytes(uint64(status.GetAllTimeDownload())))
-		log.Infof("Size total done: %s", humanize.Bytes(uint64(totalDone)))
+		log.Infof("Checking for sufficient space on %s", path)
+		log.Infof("Total size: %s", humanize.Bytes(uint64(totalSize)))
+		log.Infof("Total done size: %s", humanize.Bytes(uint64(totalDone)))
 		log.Infof("Size left to download: %s", humanize.Bytes(uint64(sizeLeft)))
 		log.Infof("Available space: %s", humanize.Bytes(uint64(diskStatus.Free)))
 
 		if diskStatus.Free < sizeLeft {
 			log.Errorf("Insufficient free space on %s. Has %d, needs %d.", path, diskStatus.Free, sizeLeft)
-			log.Infof("Pausing torrent %s", torrentInfo.Name())
+			log.Infof("Pausing torrent %s", status.GetName())
 			t.Pause()
 		} else {
 			t.spaceChecked = true
