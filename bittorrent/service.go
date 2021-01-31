@@ -145,7 +145,7 @@ func (s *Service) onSaveResumeData(alert libtorrent.SaveResumeDataAlert) {
 	torrentHandle := alert.GetHandle()
 	torrentStatus := torrentHandle.Status(libtorrent.TorrentHandleQuerySavePath |
 		libtorrent.TorrentHandleQueryName)
-	infoHash := getInfoHash(torrentStatus)
+	infoHash := getInfoHash(torrentStatus.GetInfoHash())
 
 	params := alert.GetParams()
 	entry := libtorrent.WriteResumeData(params)
@@ -165,7 +165,7 @@ func (s *Service) onSaveResumeData(alert libtorrent.SaveResumeDataAlert) {
 func (s *Service) onMetadataReceived(alert libtorrent.MetadataReceivedAlert) {
 	torrentHandle := alert.GetHandle()
 	torrentStatus := torrentHandle.Status(libtorrent.TorrentHandleQueryName)
-	infoHash := getInfoHash(torrentStatus)
+	infoHash := getInfoHash(torrentStatus.GetInfoHash())
 
 	// Save .torrent
 	log.Debugf("Saving %s.torrent", infoHash)
@@ -184,14 +184,15 @@ func (s *Service) onStateChanged(alert libtorrent.StateChangedAlert) {
 	case libtorrent.TorrentStatusDownloading:
 		torrentHandle := alert.GetHandle()
 		torrentStatus := torrentHandle.Status(libtorrent.TorrentHandleQueryName)
-		if _, torrent, err := s.getTorrent(getInfoHash(torrentStatus)); err == nil {
+		infoHash := getInfoHash(torrentStatus.GetInfoHash())
+		if _, torrent, err := s.getTorrent(infoHash); err == nil {
 			torrent.checkAvailableSpace()
 		}
 	}
 }
 
-func getInfoHash(status libtorrent.TorrentStatus) string {
-	return hex.EncodeToString([]byte(status.GetInfoHash().ToString()))
+func getInfoHash(hash libtorrent.Sha1_hash) string {
+	return hex.EncodeToString([]byte(hash.ToString()))
 }
 
 func (s *Service) saveResumeDataLoop() {
@@ -502,7 +503,7 @@ func (s *Service) AddMagnet(magnet string, download bool) (infoHash string, err 
 		return "", errors.New(errorCode.Message().(string))
 	}
 
-	infoHash = hex.EncodeToString([]byte(torrentParams.GetInfoHash().ToString()))
+	infoHash = getInfoHash(torrentParams.GetInfoHash())
 
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -523,7 +524,7 @@ func (s *Service) AddTorrentData(data []byte, download bool) (infoHash string, e
 	torrentParams := libtorrent.NewAddTorrentParams()
 	defer libtorrent.DeleteAddTorrentParams(torrentParams)
 	torrentParams.SetTorrentInfo(info)
-	infoHash = hex.EncodeToString([]byte(info.InfoHash().ToString()))
+	infoHash = getInfoHash(info.InfoHash())
 
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -560,7 +561,7 @@ func (s *Service) addTorrentFile(torrentFile string, download bool) (infoHash st
 	torrentParams := libtorrent.NewAddTorrentParams()
 	defer libtorrent.DeleteAddTorrentParams(torrentParams)
 	torrentParams.SetTorrentInfo(info)
-	infoHash = hex.EncodeToString([]byte(info.InfoHash().ToString()))
+	infoHash = getInfoHash(info.InfoHash())
 
 	err = s.addTorrentWithParams(torrentParams, infoHash, false, !download)
 	if err == nil {
@@ -593,7 +594,7 @@ func (s *Service) addTorrentWithResumeData(fastResumeFile string) (err error) {
 			if errorCode.Failed() {
 				err = errors.New(errorCode.Message().(string))
 			} else {
-				infoHash := hex.EncodeToString([]byte(torrentParams.GetInfoHash().ToString()))
+				infoHash := getInfoHash(torrentParams.GetInfoHash())
 				err = s.addTorrentWithParams(torrentParams, infoHash, true, false)
 			}
 		}
