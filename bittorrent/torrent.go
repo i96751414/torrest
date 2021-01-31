@@ -40,6 +40,7 @@ type Torrent struct {
 	service      *Service
 	handle       libtorrent.TorrentHandle
 	infoHash     string
+	defaultName  string
 	mu           *sync.Mutex
 	closing      chan interface{}
 	isPaused     bool
@@ -93,14 +94,20 @@ func DecodeTorrentData(data []byte) (*TorrentFileRaw, error) {
 func NewTorrent(service *Service, handle libtorrent.TorrentHandle, infoHash string) *Torrent {
 	flags := handle.Flags()
 	paused := hasFlagsUint64(flags, libtorrent.GetPaused()) && !hasFlagsUint64(flags, libtorrent.GetAutoManaged())
+	status := handle.Status(libtorrent.TorrentHandleQueryName)
+	name := status.GetName()
+	if len(name) == 0 {
+		name = infoHash
+	}
 
 	return &Torrent{
-		service:  service,
-		handle:   handle,
-		infoHash: infoHash,
-		mu:       &sync.Mutex{},
-		closing:  make(chan interface{}),
-		isPaused: paused,
+		service:     service,
+		handle:      handle,
+		infoHash:    infoHash,
+		defaultName: name,
+		mu:          &sync.Mutex{},
+		closing:     make(chan interface{}),
+		isPaused:    paused,
 	}
 }
 
@@ -158,13 +165,13 @@ func (t *Torrent) GetInfo() *TorrentInfo {
 		torrentInfo.Name = info.Name()
 		torrentInfo.Size = info.TotalSize()
 	} else {
-		torrentInfo.Name = t.infoHash
+		torrentInfo.Name = t.defaultName
 	}
 	return torrentInfo
 }
 
 func (t *Torrent) GetStatus() *TorrentStatus {
-	status := t.handle.Status(libtorrent.TorrentHandleQueryName)
+	status := t.handle.Status()
 
 	seeders := status.GetNumSeeds()
 	seedersTotal := status.GetNumComplete()
@@ -331,12 +338,10 @@ func (t *Torrent) checkAvailableSpace() {
 			return
 		}
 
-		status := t.handle.Status(libtorrent.TorrentHandleQueryAccurateDownloadCounters |
-			libtorrent.TorrentHandleQuerySavePath)
+		status := t.handle.Status(libtorrent.TorrentHandleQueryAccurateDownloadCounters | libtorrent.TorrentHandleQuerySavePath)
 		totalSize := torrentInfo.TotalSize()
 		totalDone := status.GetTotalDone()
 		sizeLeft := totalSize - totalDone
-		availableSpace := diskStatus.Free
 		path := status.GetSavePath()
 
 		log.Infof("Checking for sufficient space on %s...", path)
@@ -344,11 +349,11 @@ func (t *Torrent) checkAvailableSpace() {
 		log.Infof("All time download: %s", humanize.Bytes(uint64(status.GetAllTimeDownload())))
 		log.Infof("Size total done: %s", humanize.Bytes(uint64(totalDone)))
 		log.Infof("Size left to download: %s", humanize.Bytes(uint64(sizeLeft)))
-		log.Infof("Available space: %s", humanize.Bytes(uint64(availableSpace)))
+		log.Infof("Available space: %s", humanize.Bytes(uint64(diskStatus.Free)))
 
-		if availableSpace < sizeLeft {
+		if diskStatus.Free < sizeLeft {
 			log.Errorf("Insufficient free space on %s. Has %d, needs %d.", path, diskStatus.Free, sizeLeft)
-			log.Infof("Pausing torrent %s", t.handle.Status(libtorrent.TorrentHandleQueryName).GetName())
+			log.Infof("Pausing torrent %s", torrentInfo.Name())
 			t.Pause()
 		} else {
 			t.spaceChecked = true

@@ -74,7 +74,7 @@ type Settings struct {
 	DisableNatPMP        bool             `json:"disable_natpmp" example:"false"`
 	DisableLSD           bool             `json:"disable_lsd" example:"false"`
 	DownloadPath         string           `json:"download_path" validate:"required" example:"downloads"`
-	TorrentsPath         string           `json:"torrents_path" validate:"required" example:"downloads/Torrents"`
+	TorrentsPath         string           `json:"torrents_path" validate:"required" example:"downloads/torrents"`
 	UserAgent            UserAgentType    `json:"user_agent" validate:"gte=0,lte=6" example:"0"`
 	SessionSave          time.Duration    `json:"session_save" validate:"gt=0" example:"30" swaggertype:"integer"`
 	TunedStorage         bool             `json:"tuned_storage" example:"false"`
@@ -111,7 +111,7 @@ func DefaultSettings() *Settings {
 		DisableNatPMP:        false,
 		DisableLSD:           false,
 		DownloadPath:         "downloads",
-		TorrentsPath:         filepath.Join("downloads", "Torrents"),
+		TorrentsPath:         filepath.Join("downloads", "torrents"),
 		UserAgent:            DefaultUA,
 		SessionSave:          30,
 		TunedStorage:         false,

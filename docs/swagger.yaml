@@ -241,7 +241,7 @@ definitions:
         example: 200
         type: integer
       torrents_path:
-        example: downloads/Torrents
+        example: downloads/torrents
         type: string
       tuned_storage:
         example: false

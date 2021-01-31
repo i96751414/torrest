@@ -143,8 +143,7 @@ func (s *Service) alertsConsumer() {
 
 func (s *Service) onSaveResumeData(alert libtorrent.SaveResumeDataAlert) {
 	torrentHandle := alert.GetHandle()
-	torrentStatus := torrentHandle.Status(libtorrent.TorrentHandleQuerySavePath |
-		libtorrent.TorrentHandleQueryName)
+	torrentStatus := torrentHandle.Status(libtorrent.TorrentHandleQueryName)
 	infoHash := getInfoHash(torrentStatus.GetInfoHash())
 
 	params := alert.GetParams()
@@ -164,7 +163,7 @@ func (s *Service) onSaveResumeData(alert libtorrent.SaveResumeDataAlert) {
 
 func (s *Service) onMetadataReceived(alert libtorrent.MetadataReceivedAlert) {
 	torrentHandle := alert.GetHandle()
-	torrentStatus := torrentHandle.Status(libtorrent.TorrentHandleQueryName)
+	torrentStatus := torrentHandle.Status()
 	infoHash := getInfoHash(torrentStatus.GetInfoHash())
 
 	// Save .torrent
@@ -183,7 +182,7 @@ func (s *Service) onStateChanged(alert libtorrent.StateChangedAlert) {
 	switch alert.GetState() {
 	case libtorrent.TorrentStatusDownloading:
 		torrentHandle := alert.GetHandle()
-		torrentStatus := torrentHandle.Status(libtorrent.TorrentHandleQueryName)
+		torrentStatus := torrentHandle.Status()
 		infoHash := getInfoHash(torrentStatus.GetInfoHash())
 		if _, torrent, err := s.getTorrent(infoHash); err == nil {
 			torrent.checkAvailableSpace()

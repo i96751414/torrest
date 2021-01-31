@@ -1225,7 +1225,7 @@ var doc = `{
                 },
                 "torrents_path": {
                     "type": "string",
-                    "example": "downloads/Torrents"
+                    "example": "downloads/torrents"
                 },
                 "tuned_storage": {
                     "type": "boolean",
