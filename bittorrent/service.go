@@ -3,11 +3,11 @@ package bittorrent
 import (
 	"encoding/hex"
 	"errors"
-	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"regexp"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -23,6 +23,15 @@ var (
 	alertsLog = logging.MustGetLogger("alerts")
 	portRegex = regexp.MustCompile(`:\d+$`)
 )
+
+var DefaultDhtBootstrapNodes = []string{
+	"router.utorrent.com:6881",
+	"router.bittorrent.com:6881",
+	"dht.transmissionbt.com:6881",
+	"dht.aelitis.com:6881",     // Vuze
+	"router.silotis.us:6881",   // IPv6
+	"dht.libtorrent.org:25401", // @arvidn's
+}
 
 const (
 	libtorrentAlertWaitTime = time.Second
@@ -411,27 +420,19 @@ func (s *Service) configure() {
 		listenInterfaces = []string{"0.0.0.0", "[::]"}
 	}
 
-	var listenInterfacesStrings []string
-	for _, listenInterface := range listenInterfaces {
+	listenPort := strconv.FormatUint(uint64(s.config.ListenPort), 10)
+	for i, listenInterface := range listenInterfaces {
 		if !portRegex.MatchString(listenInterface) {
-			listenInterface = fmt.Sprintf("%s:%d", listenInterface, s.config.ListenPort)
+			listenInterfaces[i] += ":" + listenPort
 		}
-		listenInterfacesStrings = append(listenInterfacesStrings, listenInterface)
 	}
-	s.settingsPack.SetStr("listen_interfaces", strings.Join(listenInterfacesStrings, ","))
+	s.settingsPack.SetStr("listen_interfaces", strings.Join(listenInterfaces, ","))
 
 	if outInterfaces := strings.Replace(s.config.OutgoingInterfaces, " ", "", -1); outInterfaces != "" {
 		s.settingsPack.SetStr("outgoing_interfaces", outInterfaces)
 	}
 
-	s.settingsPack.SetStr("dht_bootstrap_nodes", strings.Join([]string{
-		"router.utorrent.com:6881",
-		"router.bittorrent.com:6881",
-		"dht.transmissionbt.com:6881",
-		"dht.aelitis.com:6881",     // Vuze
-		"router.silotis.us:6881",   // IPv6
-		"dht.libtorrent.org:25401", // @arvidn's
-	}, ","))
+	s.settingsPack.SetStr("dht_bootstrap_nodes", strings.Join(DefaultDhtBootstrapNodes, ","))
 	s.settingsPack.SetBool("enable_dht", !s.config.DisableDHT)
 	s.settingsPack.SetBool("enable_upnp", !s.config.DisableUPNP)
 	s.settingsPack.SetBool("enable_natpmp", !s.config.DisableNatPMP)
