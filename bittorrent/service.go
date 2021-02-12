@@ -177,7 +177,7 @@ func (s *Service) onSaveResumeData(alert libtorrent.SaveResumeDataAlert) {
 			log.Errorf("Failed saving '%s.fastresume': %s", infoHash, err)
 		}
 	} else {
-		log.Warningf("Resume data corrupted for %s, %d bytes received and failed to decode with: %s, skipping...",
+		log.Warningf("Resume data corrupted for %s, %d bytes received and failed to decode with: %s",
 			torrentStatus.GetName(), len(bEncoded), err)
 	}
 }
@@ -239,12 +239,12 @@ func (s *Service) saveResumeDataLoop() {
 }
 
 func (s *Service) Close() {
-	log.Info("Stopping Service...")
+	log.Info("Stopping Service")
 	s.reset()
 }
 
 func (s *Service) Reconfigure(config *settings.Settings) {
-	log.Info("Reconfiguring Service...")
+	log.Info("Reconfiguring Service")
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	createDir(config.DownloadPath)
@@ -257,7 +257,7 @@ func (s *Service) configure() {
 	s.torrents = nil
 	s.settingsPack = libtorrent.NewSettingsPack()
 
-	log.Info("Applying session settings...")
+	log.Info("Applying session settings")
 
 	s.UserAgent = util.UserAgent()
 	if s.config.UserAgent > 0 {
@@ -285,7 +285,7 @@ func (s *Service) configure() {
 		case settings.Vuze_5_7_3_0_UA:
 			s.UserAgent = "Vuze 5.7.3.0"
 		default:
-			log.Warning("Invalid user agent provided. Using default.")
+			log.Warning("Invalid user agent provided: using default")
 		}
 	}
 	log.Infof("UserAgent: %s", s.UserAgent)
@@ -363,7 +363,7 @@ func (s *Service) configure() {
 
 	if s.config.EncryptionPolicy == settings.EncryptionDisabledPolicy ||
 		s.config.EncryptionPolicy == settings.EncryptionForcedPolicy {
-		log.Debug("Applying encryption settings...")
+		log.Debug("Applying encryption settings")
 		var policy int
 		var level int
 		var preferRc4 bool
@@ -388,7 +388,7 @@ func (s *Service) configure() {
 	}
 
 	if s.config.Proxy != nil && s.config.Proxy.Type != settings.ProxyTypeNone {
-		log.Debug("Applying proxy settings...")
+		log.Debug("Applying proxy settings")
 		s.settingsPack.SetInt("proxy_type", int(s.config.Proxy.Type))
 		s.settingsPack.SetInt("proxy_port", s.config.Proxy.Port)
 		s.settingsPack.SetStr("proxy_hostname", s.config.Proxy.Hostname)

@@ -261,10 +261,10 @@ info:
     email: i96751414@gmail.com
     name: i96751414
     url: https://github.com/i96751414/torrest
-  description: Torrent server with a REST API.
+  description: Torrent server with a REST API
   license:
-    name: GPL3.0
-    url: https://www.gnu.org/licenses/gpl-3.0.html
+    name: MIT
+    url: https://github.com/i96751414/torrest/blob/master/LICENSE
   title: Torrest API
   version: "1.0"
 paths:

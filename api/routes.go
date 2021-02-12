@@ -41,14 +41,14 @@ func NewMessageResponse(format string, a ...interface{}) *MessageResponse {
 
 // @title Torrest API
 // @version 1.0
-// @description Torrent server with a REST API.
+// @description Torrent server with a REST API
 
 // @contact.name i96751414
 // @contact.url https://github.com/i96751414/torrest
 // @contact.email i96751414@gmail.com
 
-// @license.name GPL3.0
-// @license.url https://www.gnu.org/licenses/gpl-3.0.html
+// @license.name MIT
+// @license.url https://github.com/i96751414/torrest/blob/master/LICENSE
 
 // @BasePath /
 

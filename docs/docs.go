@@ -24,8 +24,8 @@ var doc = `{
             "email": "i96751414@gmail.com"
         },
         "license": {
-            "name": "GPL3.0",
-            "url": "https://www.gnu.org/licenses/gpl-3.0.html"
+            "name": "MIT",
+            "url": "https://github.com/i96751414/torrest/blob/master/LICENSE"
         },
         "version": "{{.Version}}"
     },
@@ -1260,7 +1260,7 @@ var SwaggerInfo = swaggerInfo{
 	BasePath:    "/",
 	Schemes:     []string{},
 	Title:       "Torrest API",
-	Description: "Torrent server with a REST API.",
+	Description: "Torrent server with a REST API",
 }
 
 type s struct{}
