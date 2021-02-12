@@ -19,6 +19,14 @@ import (
 var log = logging.MustGetLogger("main")
 
 func main() {
+	// Parse necessary arguments
+	var listenPort int
+	var settingsPath, origin string
+	flag.IntVar(&listenPort, "port", 8080, "Server listen port")
+	flag.StringVar(&settingsPath, "settings", "settings.json", "Settings path")
+	flag.StringVar(&origin, "origin", "*", "Access-Control-Allow-Origin header value")
+	flag.Parse()
+
 	// Make sure we are properly multi threaded.
 	runtime.GOMAXPROCS(runtime.NumCPU())
 
@@ -26,13 +34,6 @@ func main() {
 		`%{color}%{time:2006-01-02 15:04:05.000} %{level:-8s}  %{module:-12s} - %{shortfunc:-15s}  %{color:reset}%{message}`,
 	))
 	logging.SetBackend(logging.NewLogBackend(os.Stdout, "", 0))
-
-	// Parse necessary arguments
-	var listenPort int
-	var settingsPath string
-	flag.IntVar(&listenPort, "port", 8080, "Server listen port")
-	flag.StringVar(&settingsPath, "settings", "settings.json", "Settings path")
-	flag.Parse()
 
 	m := http.NewServeMux()
 	s := http.Server{
@@ -53,8 +54,8 @@ func main() {
 	service := bittorrent.NewService(config)
 	defer service.Close()
 
-	m.Handle("/", api.Routes(config, service))
-	m.HandleFunc("/shutdown", shutdown(cancel))
+	m.Handle("/", api.Routes(config, service, origin))
+	m.HandleFunc("/shutdown", shutdown(cancel, origin))
 
 	log.Infof("Starting torrent daemon on port %d", listenPort)
 	go func() {
@@ -82,12 +83,12 @@ func main() {
 // @ID shutdown
 // @Success 200 "OK"
 // @Router /shutdown [get]
-func shutdown(cancel context.CancelFunc) func(w http.ResponseWriter, r *http.Request) {
+func shutdown(cancel context.CancelFunc, origin string) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		switch r.Method {
 		case http.MethodGet:
 			cancel()
-			w.Header().Set("Access-Control-Allow-Origin", "*")
+			w.Header().Set("Access-Control-Allow-Origin", origin)
 		default:
 			w.WriteHeader(http.StatusNotFound)
 		}

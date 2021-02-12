@@ -53,12 +53,12 @@ func NewMessageResponse(format string, a ...interface{}) *MessageResponse {
 // @BasePath /
 
 // Routes defines all the routes of the server
-func Routes(config *settings.Settings, service *bittorrent.Service) *gin.Engine {
+func Routes(config *settings.Settings, service *bittorrent.Service, origin string) *gin.Engine {
 	gin.SetMode(gin.ReleaseMode)
 
 	r := gin.New()
 	// We could use gin.Recovery(), however it is most likely we would suppress bittorrent panics
-	r.Use(Logger(log), CORSMiddleware())
+	r.Use(Logger(log), CORSMiddleware(origin))
 
 	r.GET("/status", status(service))
 	r.GET("/pause", pause(service))
@@ -95,9 +95,9 @@ func Routes(config *settings.Settings, service *bittorrent.Service) *gin.Engine 
 	return r
 }
 
-func CORSMiddleware() gin.HandlerFunc {
+func CORSMiddleware(origin string) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
+		c.Writer.Header().Set("Access-Control-Allow-Origin", origin)
 		c.Next()
 	}
 }
