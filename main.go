@@ -23,7 +23,7 @@ func main() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
 
 	logging.SetFormatter(logging.MustStringFormatter(
-		`%{color}%{level:.4s}  %{module:-12s} - %{shortfunc:-15s}  %{color:reset}%{message}`,
+		`%{color}%{time:2006-01-02 15:04:05.000} %{level:-8s}  %{module:-12s} - %{shortfunc:-15s}  %{color:reset}%{message}`,
 	))
 	logging.SetBackend(logging.NewLogBackend(os.Stdout, "", 0))
 

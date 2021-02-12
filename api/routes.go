@@ -9,6 +9,7 @@ import (
 	"github.com/op/go-logging"
 	swaggerFiles "github.com/swaggo/files"
 	"github.com/swaggo/gin-swagger"
+	"time"
 )
 
 var log = logging.MustGetLogger("api")
@@ -57,7 +58,7 @@ func Routes(config *settings.Settings, service *bittorrent.Service) *gin.Engine 
 
 	r := gin.New()
 	// We could use gin.Recovery(), however it is most likely we would suppress bittorrent panics
-	r.Use(gin.LoggerWithWriter(gin.DefaultWriter), CORSMiddleware())
+	r.Use(Logger(log), CORSMiddleware())
 
 	r.GET("/status", status(service))
 	r.GET("/pause", pause(service))
@@ -98,5 +99,43 @@ func CORSMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
 		c.Next()
+	}
+}
+
+func Logger(logger *logging.Logger) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		start := time.Now()
+		path := c.Request.URL.Path
+		raw := c.Request.URL.RawQuery
+		if raw != "" {
+			path = path + "?" + raw
+		}
+
+		c.Next()
+
+		latency := time.Since(start)
+		clientIP := c.ClientIP()
+		statusCode := c.Writer.Status()
+		method := c.Request.Method
+		errorMessage := c.Errors.String()
+
+		if errorMessage != "" {
+			errorMessage = " :" + errorMessage
+		}
+
+		if latency > time.Minute {
+			latency = latency - latency%time.Second
+		}
+
+		var logFunc func(string, ...interface{})
+		if statusCode >= 500 {
+			logFunc = logger.Errorf
+		} else if statusCode >= 400 {
+			logFunc = logger.Warningf
+		} else {
+			logFunc = logger.Infof
+		}
+
+		logFunc("GIN | %3d | %13v | %15s | %-7s %s%s", statusCode, latency, clientIP, method, path, errorMessage)
 	}
 }
