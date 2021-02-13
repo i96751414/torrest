@@ -54,6 +54,7 @@ func NewMessageResponse(format string, a ...interface{}) *MessageResponse {
 
 // Routes defines all the routes of the server
 func Routes(config *settings.Settings, service *bittorrent.Service, origin string) *gin.Engine {
+	setLogLevel(config)
 	gin.SetMode(gin.ReleaseMode)
 
 	r := gin.New()
@@ -93,6 +94,10 @@ func Routes(config *settings.Settings, service *bittorrent.Service, origin strin
 		ginSwagger.URL("/swagger/doc.json")))
 
 	return r
+}
+
+func setLogLevel(config *settings.Settings) {
+	logging.SetLevel(config.ApiLogLevel, log.Module)
 }
 
 func CORSMiddleware(origin string) gin.HandlerFunc {
