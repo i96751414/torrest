@@ -47,7 +47,7 @@ jobs:
           echo "::set-output name=asset_path::${asset_path}"
           echo "::set-output name=asset_name::$(basename "${asset_path}")"
 
-      - name: Upload ${{ steps.generate_zip.outputs.asset_name }} artifact
+      - name: Upload ${{ matrix.platform }} zip
         uses: actions/upload-artifact@v2
         with:
           name: ${{ matrix.platform }}
@@ -59,7 +59,7 @@ jobs:
     needs: build
     if: success() && github.event_name == 'create' && startsWith(github.ref, 'refs/tags/')
     steps:
-      - name: Download all artifacts
+      - name: Get all artifacts
         uses: actions/download-artifact@v2
 
       - name: Perform release
