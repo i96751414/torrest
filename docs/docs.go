@@ -1141,6 +1141,10 @@ var doc = `{
                     "type": "integer",
                     "example": 0
                 },
+                "api_log_level": {
+                    "type": "integer",
+                    "example": 1
+                },
                 "buffer_size": {
                     "type": "integer",
                     "example": 20971520

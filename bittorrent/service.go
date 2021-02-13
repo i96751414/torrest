@@ -147,15 +147,17 @@ func (s *Service) alertsConsumer() {
 				}
 
 				// log alerts
+				var logFunc func(string, ...interface{})
 				if category&libtorrent.AlertErrorNotification != 0 {
-					alertsLog.Errorf("%s: %s", what, alertMessage)
+					logFunc = alertsLog.Errorf
 				} else if category&libtorrent.AlertConnectNotification != 0 {
-					alertsLog.Debugf("%s: %s", what, alertMessage)
+					logFunc = alertsLog.Debugf
 				} else if category&libtorrent.AlertPerformanceWarning != 0 {
-					alertsLog.Warningf("%s: %s", what, alertMessage)
+					logFunc = alertsLog.Warningf
 				} else {
-					alertsLog.Noticef("%s: %s", what, alertMessage)
+					logFunc = alertsLog.Noticef
 				}
+				logFunc("%s: %s", what, alertMessage)
 			}
 			libtorrent.DeleteStdVectorAlerts(alerts)
 		}

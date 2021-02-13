@@ -2,6 +2,7 @@ package api
 
 import (
 	"github.com/i96751414/torrest/bittorrent"
+	"github.com/op/go-logging"
 	"io/ioutil"
 	"net/http"
 
@@ -44,6 +45,7 @@ func setSettings(config *settings.Settings, service *bittorrent.Service) gin.Han
 		if err := config.Save(); err != nil {
 			log.Errorf("Failed saving settings: %s", err)
 		}
+		logging.SetLevel(config.ApiLogLevel, log.Module)
 		service.Reconfigure(config)
 		ctx.JSON(http.StatusOK, config)
 	}

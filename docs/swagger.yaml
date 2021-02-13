@@ -179,6 +179,9 @@ definitions:
       alerts_log_level:
         example: 0
         type: integer
+      api_log_level:
+        example: 1
+        type: integer
       buffer_size:
         example: 20971520
         type: integer

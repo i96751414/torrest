@@ -98,6 +98,7 @@ type Settings struct {
 	PieceWaitTimeout     time.Duration    `json:"piece_wait_timeout" validate:"gte=0" example:"60" swaggertype:"integer"`
 	ServiceLogLevel      logging.Level    `json:"service_log_level" validate:"gte=0,lte=5" example:"4" swaggertype:"integer"`
 	AlertsLogLevel       logging.Level    `json:"alerts_log_level" validate:"gte=0,lte=5" example:"0" swaggertype:"integer"`
+	ApiLogLevel          logging.Level    `json:"api_log_level" validate:"gte=0,lte=5" example:"1" swaggertype:"integer"`
 }
 
 func DefaultSettings() *Settings {
@@ -136,6 +137,7 @@ func DefaultSettings() *Settings {
 		PieceWaitTimeout:     60,
 		ServiceLogLevel:      logging.INFO,
 		AlertsLogLevel:       logging.CRITICAL,
+		ApiLogLevel:          logging.ERROR,
 	}
 }
 
