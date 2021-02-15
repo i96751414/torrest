@@ -1,10 +1,12 @@
-Torrest [![Build Status](https://github.com/i96751414/torrest/workflows/build/badge.svg)](https://github.com/i96751414/torrest/actions?query=workflow%3Abuild)
-=======
+# Torrest 
+
+[![Build Status](https://github.com/i96751414/torrest/workflows/build/badge.svg)](https://github.com/i96751414/torrest/actions?query=workflow%3Abuild)
+[![Codacy Badge](https://app.codacy.com/project/badge/Grade/14e736b811194699a98fc900979a99ad)](https://www.codacy.com/gh/i96751414/torrest/dashboard?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=i96751414/torrest&amp;utm_campaign=Badge_Grade)
 
 Torrent service with a REST api, specially made for streaming.
 
-### Building
-1. Build the [cross-compiler](https://github.com/i96751414/cross-compiler) and [libtorrent-go](https://github.com/i96751414/libtorrent-go) images, or alternatively, pull the libtorrent-go images from [Docker Hub](https://hub.docker.com/r/i96751414/libtorrent-go):
+## Building
+1.  Build the [cross-compiler](https://github.com/i96751414/cross-compiler) and [libtorrent-go](https://github.com/i96751414/libtorrent-go) images, or alternatively, pull the libtorrent-go images from [Docker Hub](https://hub.docker.com/r/i96751414/libtorrent-go):
 
     ```shell script
     make pull-all
@@ -14,13 +16,13 @@ Torrent service with a REST api, specially made for streaming.
     make pull PLATFORM=linux-x64
     ```
    
-2. Build torrest binaries:
+2.  Build torrest binaries:
 
     ```shell script
     make all
     ```
-   Or if you want to build for a specific platform:
-   ```shell script
+    Or if you want to build for a specific platform:
+    ```shell script
     make linux-x64
     ```
    
