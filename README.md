@@ -27,9 +27,10 @@ Torrent service with a REST api, specially made for streaming.
     ```
    
 The list of supported platforms is:
-`
-android-arm | android-arm64 | android-x64 | android-x86 | darwin-x64 | linux-arm | linux-armv7 | linux-arm64 | linux-x64 | linux-x86 | windows-x64 | windows-x86
-`
+
+|Android|Darwin|Linux|Windows|
+|-------|------|-----|-------|
+|android-arm<br/>android-arm64<br/>android-x64<br/>android-x86<br/><br/>|darwin-x64<br/><br/><br/><br/><br/>|linux-arm<br/>linux-armv7<br/>linux-arm64<br/>linux-x64<br/>linux-x86|windows-x64<br/>windows-x86<br/><br/><br/><br/>|
 
 ### Swagger
 For building swagger docs, you must run `go get -u github.com/swaggo/swag/cmd/swag` to install all the necessary dependencies, and then run `make swag`.
