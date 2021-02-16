@@ -130,6 +130,7 @@ func (f *File) BytesCompleted() int64 {
 }
 
 func (f *File) SetPriority(priority uint) {
+	log.Debugf("Setting file %s:%d with priority %d", f.torrent.infoHash, f.index, priority)
 	f.mu.Lock()
 	defer f.mu.Unlock()
 
@@ -152,6 +153,7 @@ func (f *File) addBufferPiece(piece int, info libtorrent.TorrentInfo) {
 }
 
 func (f *File) Buffer(startBufferSize, endBufferSize int64) {
+	log.Debugf("Buffering file %s:%d", f.torrent.infoHash, f.index)
 	f.mu.Lock()
 	defer f.mu.Unlock()
 

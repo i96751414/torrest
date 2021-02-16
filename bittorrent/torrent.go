@@ -236,6 +236,7 @@ func (t *Torrent) GetFile(id int) (*File, error) {
 }
 
 func (t *Torrent) SetPriority(priority uint) {
+	log.Debugf("Setting torrent %s with priority %d", t.infoHash, priority)
 	if !t.HasMetadata() {
 		panic("don't have metadata")
 	}

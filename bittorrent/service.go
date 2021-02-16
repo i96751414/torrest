@@ -475,6 +475,8 @@ func (s *Service) reset() {
 }
 
 func (s *Service) addTorrentWithParams(torrentParams libtorrent.AddTorrentParams, infoHash string, isResumeData, noDownload bool) error {
+	log.Debugf("Adding torrent params with infohash %s", infoHash)
+
 	if !isResumeData {
 		log.Debugf("Setting params for '%s' torrent", infoHash)
 		torrentParams.SetSavePath(s.config.DownloadPath)
@@ -515,6 +517,7 @@ func (s *Service) AddMagnet(magnet string, download bool) (infoHash string, err 
 }
 
 func (s *Service) addMagnet(magnet string, download, saveMagnet bool) (infoHash string, err error) {
+	log.Debugf("Adding magnet '%s' with download=%t and save=%t", magnet, download, saveMagnet)
 	torrentParams := libtorrent.NewAddTorrentParams()
 	defer libtorrent.DeleteAddTorrentParams(torrentParams)
 	errorCode := libtorrent.NewErrorCode()
@@ -536,6 +539,7 @@ func (s *Service) addMagnet(magnet string, download, saveMagnet bool) (infoHash 
 }
 
 func (s *Service) AddTorrentData(data []byte, download bool) (infoHash string, err error) {
+	log.Debugf("Adding torrent data with download=%t", download)
 	errorCode := libtorrent.NewErrorCode()
 	defer libtorrent.DeleteErrorCode(errorCode)
 	info := libtorrent.NewTorrentInfo(string(data), len(data), errorCode)
@@ -568,6 +572,7 @@ func (s *Service) AddTorrentFile(torrentFile string, download bool) (infoHash st
 }
 
 func (s *Service) addTorrentFile(torrentFile string, download bool) (infoHash string, err error) {
+	log.Debugf("Adding torrent file '%s' with download=%t", torrentFile, download)
 	fi, e := os.Stat(torrentFile)
 	if e != nil {
 		return "", e
@@ -601,6 +606,7 @@ func (s *Service) addTorrentFile(torrentFile string, download bool) (infoHash st
 }
 
 func (s *Service) addTorrentWithResumeData(fastResumeFile string) (err error) {
+	log.Debugf("Adding torrent with resume data '%s'", fastResumeFile)
 	if fastResumeData, e := ioutil.ReadFile(fastResumeFile); e != nil {
 		deleteFile(fastResumeFile)
 		err = e
@@ -818,6 +824,7 @@ func (s *Service) GetTorrent(infoHash string) (*Torrent, error) {
 }
 
 func (s *Service) RemoveTorrent(infoHash string, removeFiles bool) error {
+	log.Debugf("Removing torrent with infohash %s and removeFiles=%t", infoHash, removeFiles)
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
