@@ -691,7 +691,7 @@ func (s *Service) downloadProgress() {
 
 			var totalDownloadRate int64
 			var totalUploadRate int64
-			var totalProgress float64
+			var totalProgressSize float64
 			var totalSize int64
 
 			hasFilesBuffering := false
@@ -728,15 +728,15 @@ func (s *Service) downloadProgress() {
 				{
 					progress := float64(torrentStatus.GetProgress())
 
-					if progress < 100 {
+					if progress < 1 {
 						size := torrentStatus.GetTotalWanted()
-						totalProgress += progress * float64(size)
+						totalProgressSize += progress * float64(size)
 						totalSize += size
 						goto cleanUp
 					}
 
 					seedingTime := torrentStatus.GetSeedingDuration()
-					if progress == 100 && seedingTime == 0 {
+					if progress == 1 && seedingTime == 0 {
 						seedingTime = torrentStatus.GetFinishedDuration()
 					}
 
@@ -779,7 +779,7 @@ func (s *Service) downloadProgress() {
 			s.downloadRate = totalDownloadRate
 			s.uploadRate = totalUploadRate
 			if totalSize > 0 {
-				s.progress = 100 * totalProgress / float64(totalSize)
+				s.progress = 100 * totalProgressSize / float64(totalSize)
 			} else {
 				s.progress = 100
 			}
