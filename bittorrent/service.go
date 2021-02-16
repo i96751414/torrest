@@ -167,6 +167,7 @@ func (s *Service) alertsConsumer() {
 func (s *Service) onSaveResumeData(alert libtorrent.SaveResumeDataAlert) {
 	torrentHandle := alert.GetHandle()
 	torrentStatus := torrentHandle.Status(libtorrent.TorrentHandleQueryName)
+	defer libtorrent.DeleteTorrentStatus(torrentStatus)
 	infoHash := getInfoHash(torrentStatus.GetInfoHash())
 
 	params := alert.GetParams()
@@ -187,6 +188,7 @@ func (s *Service) onSaveResumeData(alert libtorrent.SaveResumeDataAlert) {
 func (s *Service) onMetadataReceived(alert libtorrent.MetadataReceivedAlert) {
 	torrentHandle := alert.GetHandle()
 	torrentStatus := torrentHandle.Status()
+	defer libtorrent.DeleteTorrentStatus(torrentStatus)
 	infoHash := getInfoHash(torrentStatus.GetInfoHash())
 
 	// Save .torrent
@@ -208,6 +210,7 @@ func (s *Service) onStateChanged(alert libtorrent.StateChangedAlert) {
 	case libtorrent.TorrentStatusDownloading:
 		torrentHandle := alert.GetHandle()
 		torrentStatus := torrentHandle.Status()
+		defer libtorrent.DeleteTorrentStatus(torrentStatus)
 		infoHash := getInfoHash(torrentStatus.GetInfoHash())
 		if _, torrent, err := s.getTorrent(infoHash); err == nil {
 			torrent.checkAvailableSpace()
@@ -233,6 +236,7 @@ func (s *Service) saveResumeDataLoop() {
 					if status.GetHasMetadata() && status.GetNeedSaveResume() {
 						torrent.handle.SaveResumeData(libtorrent.TorrentHandleSaveInfoDict)
 					}
+					libtorrent.DeleteTorrentStatus(status)
 				}
 			}
 			s.mu.RUnlock()
@@ -702,7 +706,7 @@ func (s *Service) downloadProgress() {
 
 				torrentStatus := t.handle.Status(libtorrent.TorrentHandleQueryName)
 				if !torrentStatus.GetHasMetadata() {
-					continue
+					goto cleanUp
 				}
 
 				for _, f := range t.Files() {
@@ -720,46 +724,52 @@ func (s *Service) downloadProgress() {
 
 				totalDownloadRate += int64(torrentStatus.GetDownloadRate())
 				totalUploadRate += int64(torrentStatus.GetUploadRate())
-				progress := float64(torrentStatus.GetProgress())
 
-				if progress < 100 {
-					size := torrentStatus.GetTotalWanted()
-					totalProgress += progress * float64(size)
-					totalSize += size
-					continue
-				}
+				{
+					progress := float64(torrentStatus.GetProgress())
 
-				seedingTime := torrentStatus.GetSeedingDuration()
-				if progress == 100 && seedingTime == 0 {
-					seedingTime = torrentStatus.GetFinishedDuration()
-				}
-
-				if s.config.SeedTimeLimit > 0 {
-					if seedingTime >= int64(s.config.SeedTimeLimit) {
-						log.Infof("Seeding time limit reached, pausing %s", torrentStatus.GetName())
-						t.Pause()
-						continue
+					if progress < 100 {
+						size := torrentStatus.GetTotalWanted()
+						totalProgress += progress * float64(size)
+						totalSize += size
+						goto cleanUp
 					}
-				}
-				if s.config.SeedTimeRatioLimit > 0 {
-					if downloadTime := torrentStatus.GetActiveDuration() - seedingTime; downloadTime > 1 {
-						timeRatio := seedingTime * 100 / downloadTime
-						if timeRatio >= int64(s.config.SeedTimeRatioLimit) {
-							log.Infof("Seeding time ratio reached, pausing %s", torrentStatus.GetName())
+
+					seedingTime := torrentStatus.GetSeedingDuration()
+					if progress == 100 && seedingTime == 0 {
+						seedingTime = torrentStatus.GetFinishedDuration()
+					}
+
+					if s.config.SeedTimeLimit > 0 {
+						if seedingTime >= int64(s.config.SeedTimeLimit) {
+							log.Infof("Seeding time limit reached, pausing %s", torrentStatus.GetName())
 							t.Pause()
-							continue
+							goto cleanUp
+						}
+					}
+					if s.config.SeedTimeRatioLimit > 0 {
+						if downloadTime := torrentStatus.GetActiveDuration() - seedingTime; downloadTime > 1 {
+							timeRatio := seedingTime * 100 / downloadTime
+							if timeRatio >= int64(s.config.SeedTimeRatioLimit) {
+								log.Infof("Seeding time ratio reached, pausing %s", torrentStatus.GetName())
+								t.Pause()
+								goto cleanUp
+							}
+						}
+					}
+					if s.config.ShareRatioLimit > 0 {
+						if allTimeDownload := torrentStatus.GetAllTimeDownload(); allTimeDownload > 0 {
+							ratio := torrentStatus.GetAllTimeUpload() * 100 / allTimeDownload
+							if ratio >= int64(s.config.ShareRatioLimit) {
+								log.Infof("Share ratio reached, pausing %s", torrentStatus.GetName())
+								t.Pause()
+							}
 						}
 					}
 				}
-				if s.config.ShareRatioLimit > 0 {
-					if allTimeDownload := torrentStatus.GetAllTimeDownload(); allTimeDownload > 0 {
-						ratio := torrentStatus.GetAllTimeUpload() * 100 / allTimeDownload
-						if ratio >= int64(s.config.ShareRatioLimit) {
-							log.Infof("Share ratio reached, pausing %s", torrentStatus.GetName())
-							t.Pause()
-						}
-					}
-				}
+
+			cleanUp:
+				libtorrent.DeleteTorrentStatus(torrentStatus)
 			}
 
 			if bufferStateChanged && !hasFilesBuffering {

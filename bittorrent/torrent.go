@@ -95,6 +95,7 @@ func NewTorrent(service *Service, handle libtorrent.TorrentHandle, infoHash stri
 	flags := handle.Flags()
 	paused := hasFlagsUint64(flags, libtorrent.GetPaused()) && !hasFlagsUint64(flags, libtorrent.GetAutoManaged())
 	status := handle.Status(libtorrent.TorrentHandleQueryName)
+	defer libtorrent.DeleteTorrentStatus(status)
 	name := status.GetName()
 	if len(name) == 0 {
 		name = infoHash
@@ -133,7 +134,11 @@ func (t *Torrent) getState(file ...*File) LTStatus {
 	if hasFlagsUint64(t.handle.Flags(), libtorrent.GetPaused()|libtorrent.GetAutoManaged()) {
 		return QueuedStatus
 	}
-	state := LTStatus(t.handle.Status().GetState())
+
+	status := t.handle.Status()
+	defer libtorrent.DeleteTorrentStatus(status)
+	state := LTStatus(status.GetState())
+
 	if state == DownloadingStatus {
 		downloading := false
 		for _, f := range file {
@@ -148,6 +153,7 @@ func (t *Torrent) getState(file ...*File) LTStatus {
 			return FinishedStatus
 		}
 	}
+
 	return state
 }
 
@@ -156,7 +162,9 @@ func (t *Torrent) GetState() LTStatus {
 }
 
 func (t *Torrent) HasMetadata() bool {
-	return t.handle.Status().GetHasMetadata()
+	status := t.handle.Status()
+	defer libtorrent.DeleteTorrentStatus(status)
+	return status.GetHasMetadata()
 }
 
 func (t *Torrent) GetInfo() *TorrentInfo {
@@ -172,6 +180,7 @@ func (t *Torrent) GetInfo() *TorrentInfo {
 
 func (t *Torrent) GetStatus() *TorrentStatus {
 	status := t.handle.Status()
+	defer libtorrent.DeleteTorrentStatus(status)
 
 	seeders := status.GetNumSeeds()
 	seedersTotal := status.GetNumComplete()
@@ -335,6 +344,8 @@ func (t *Torrent) checkAvailableSpace() {
 	} else if diskStatus != nil {
 		status := t.handle.Status(libtorrent.TorrentHandleQueryAccurateDownloadCounters |
 			libtorrent.TorrentHandleQuerySavePath | libtorrent.TorrentHandleQueryName)
+		defer libtorrent.DeleteTorrentStatus(status)
+
 		if !status.GetHasMetadata() {
 			log.Warning("Missing torrent metadata to check available space")
 			return
