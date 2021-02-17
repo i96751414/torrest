@@ -165,8 +165,7 @@ func (s *Service) alertsConsumer() {
 }
 
 func (s *Service) onSaveResumeData(alert libtorrent.SaveResumeDataAlert) {
-	torrentHandle := alert.GetHandle()
-	torrentStatus := torrentHandle.Status(libtorrent.TorrentHandleQueryName)
+	torrentStatus := alert.GetHandle().Status(libtorrent.TorrentHandleQueryName)
 	defer libtorrent.DeleteTorrentStatus(torrentStatus)
 	infoHash := getInfoHash(torrentStatus.GetInfoHash())
 
@@ -187,16 +186,20 @@ func (s *Service) onSaveResumeData(alert libtorrent.SaveResumeDataAlert) {
 
 func (s *Service) onMetadataReceived(alert libtorrent.MetadataReceivedAlert) {
 	torrentHandle := alert.GetHandle()
-	torrentStatus := torrentHandle.Status()
-	defer libtorrent.DeleteTorrentStatus(torrentStatus)
-	infoHash := getInfoHash(torrentStatus.GetInfoHash())
+	infoHash := getHandleInfoHash(torrentHandle)
 
-	// Save .torrent
+	if torrent, err := s.GetTorrent(infoHash); err == nil {
+		torrent.onMetadataReceived()
+	} else {
+		log.Errorf("Unable to get torrent with infohash %s. Skipping onMetadataReceived", infoHash)
+	}
+
 	log.Debugf("Saving %s.torrent", infoHash)
-	torrentInfo := torrentHandle.TorrentFile()
-	torrentFile := libtorrent.NewCreateTorrent(torrentInfo)
+	torrentFile := libtorrent.NewCreateTorrent(torrentHandle.TorrentFile())
 	defer libtorrent.DeleteCreateTorrent(torrentFile)
 	torrentContent := torrentFile.Generate()
+	defer libtorrent.DeleteEntry(torrentContent)
+
 	bEncodedTorrent := []byte(libtorrent.Bencode(torrentContent))
 	if err := ioutil.WriteFile(s.torrentPath(infoHash), bEncodedTorrent, 0644); err == nil {
 		s.deleteMagnetFile(infoHash)
@@ -208,14 +211,17 @@ func (s *Service) onMetadataReceived(alert libtorrent.MetadataReceivedAlert) {
 func (s *Service) onStateChanged(alert libtorrent.StateChangedAlert) {
 	switch alert.GetState() {
 	case libtorrent.TorrentStatusDownloading:
-		torrentHandle := alert.GetHandle()
-		torrentStatus := torrentHandle.Status()
-		defer libtorrent.DeleteTorrentStatus(torrentStatus)
-		infoHash := getInfoHash(torrentStatus.GetInfoHash())
-		if _, torrent, err := s.getTorrent(infoHash); err == nil {
+		infoHash := getHandleInfoHash(alert.GetHandle())
+		if torrent, err := s.GetTorrent(infoHash); err == nil {
 			torrent.checkAvailableSpace()
 		}
 	}
+}
+
+func getHandleInfoHash(handle libtorrent.TorrentHandle) string {
+	sha1Hash := handle.InfoHash()
+	defer libtorrent.DeleteSha1_hash(sha1Hash)
+	return getInfoHash(sha1Hash)
 }
 
 func getInfoHash(hash libtorrent.Sha1_hash) string {
@@ -700,16 +706,11 @@ func (s *Service) downloadProgress() {
 			s.mu.RLock()
 
 			for _, t := range s.torrents {
-				if t.isPaused || !t.handle.IsValid() {
+				if t.isPaused || !t.hasMetadata || !t.handle.IsValid() {
 					continue
 				}
 
-				torrentStatus := t.handle.Status(libtorrent.TorrentHandleQueryName)
-				if !torrentStatus.GetHasMetadata() {
-					goto cleanUp
-				}
-
-				for _, f := range t.Files() {
+				for _, f := range t.files {
 					if f.isBuffering {
 						f.mu.Lock()
 						if f.bufferBytesMissing() == 0 {
@@ -722,19 +723,16 @@ func (s *Service) downloadProgress() {
 					}
 				}
 
+				torrentStatus := t.handle.Status(libtorrent.TorrentHandleQueryName)
 				totalDownloadRate += int64(torrentStatus.GetDownloadRate())
 				totalUploadRate += int64(torrentStatus.GetUploadRate())
 
-				{
-					progress := float64(torrentStatus.GetProgress())
-
-					if progress < 1 {
-						size := torrentStatus.GetTotalWanted()
-						totalProgressSize += progress * float64(size)
-						totalSize += size
-						goto cleanUp
-					}
-
+				progress := float64(torrentStatus.GetProgress())
+				if progress < 1 {
+					size := torrentStatus.GetTotalWanted()
+					totalProgressSize += progress * float64(size)
+					totalSize += size
+				} else {
 					seedingTime := torrentStatus.GetSeedingDuration()
 					if progress == 1 && seedingTime == 0 {
 						seedingTime = torrentStatus.GetFinishedDuration()
@@ -744,20 +742,16 @@ func (s *Service) downloadProgress() {
 						if seedingTime >= int64(s.config.SeedTimeLimit) {
 							log.Infof("Seeding time limit reached, pausing %s", torrentStatus.GetName())
 							t.Pause()
-							goto cleanUp
 						}
-					}
-					if s.config.SeedTimeRatioLimit > 0 {
-						if downloadTime := torrentStatus.GetActiveDuration() - seedingTime; downloadTime > 1 {
+					} else if s.config.SeedTimeRatioLimit > 0 {
+						if downloadTime := torrentStatus.GetActiveDuration() - seedingTime; downloadTime > 0 {
 							timeRatio := seedingTime * 100 / downloadTime
 							if timeRatio >= int64(s.config.SeedTimeRatioLimit) {
 								log.Infof("Seeding time ratio reached, pausing %s", torrentStatus.GetName())
 								t.Pause()
-								goto cleanUp
 							}
 						}
-					}
-					if s.config.ShareRatioLimit > 0 {
+					} else if s.config.ShareRatioLimit > 0 {
 						if allTimeDownload := torrentStatus.GetAllTimeDownload(); allTimeDownload > 0 {
 							ratio := torrentStatus.GetAllTimeUpload() * 100 / allTimeDownload
 							if ratio >= int64(s.config.ShareRatioLimit) {
@@ -768,7 +762,6 @@ func (s *Service) downloadProgress() {
 					}
 				}
 
-			cleanUp:
 				libtorrent.DeleteTorrentStatus(torrentStatus)
 			}
 

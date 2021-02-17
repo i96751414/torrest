@@ -46,6 +46,7 @@ type Torrent struct {
 	isPaused     bool
 	files        []*File
 	spaceChecked bool
+	hasMetadata  bool
 }
 
 type TorrentInfo struct {
@@ -101,7 +102,7 @@ func NewTorrent(service *Service, handle libtorrent.TorrentHandle, infoHash stri
 		name = infoHash
 	}
 
-	return &Torrent{
+	t := &Torrent{
 		service:     service,
 		handle:      handle,
 		infoHash:    infoHash,
@@ -110,6 +111,26 @@ func NewTorrent(service *Service, handle libtorrent.TorrentHandle, infoHash stri
 		closing:     make(chan interface{}),
 		isPaused:    paused,
 	}
+
+	if status.GetHasMetadata() {
+		t.onMetadataReceived()
+	}
+
+	return t
+}
+
+func (t *Torrent) onMetadataReceived() {
+	info := t.handle.TorrentFile()
+	files := info.Files()
+	fileCount := info.NumFiles()
+
+	f := make([]*File, fileCount)
+	for i := 0; i < fileCount; i++ {
+		f[i] = NewFile(t, files, i)
+	}
+
+	t.files = f
+	t.hasMetadata = true
 }
 
 func (t *Torrent) InfoHash() string {
@@ -158,13 +179,11 @@ func (t *Torrent) getState(file ...*File) LTStatus {
 }
 
 func (t *Torrent) GetState() LTStatus {
-	return t.getState(t.Files()...)
+	return t.getState(t.files...)
 }
 
 func (t *Torrent) HasMetadata() bool {
-	status := t.handle.Status()
-	defer libtorrent.DeleteTorrentStatus(status)
-	return status.GetHasMetadata()
+	return t.hasMetadata
 }
 
 func (t *Torrent) GetInfo() *TorrentInfo {
@@ -203,7 +222,7 @@ func (t *Torrent) GetStatus() *TorrentStatus {
 		DownloadRate:    status.GetDownloadRate(),
 		UploadRate:      status.GetUploadRate(),
 		Paused:          t.isPaused,
-		HasMetadata:     status.GetHasMetadata(),
+		HasMetadata:     t.hasMetadata,
 		State:           t.GetState(),
 		Seeders:         seeders,
 		SeedersTotal:    seedersTotal,
@@ -218,47 +237,34 @@ func (t *Torrent) GetStatus() *TorrentStatus {
 }
 
 func (t *Torrent) Files() []*File {
-	t.mu.Lock()
-	defer t.mu.Unlock()
-
-	if t.files == nil {
-		if info := t.handle.TorrentFile(); info.Swigcptr() != 0 {
-			files := info.Files()
-			t.files = make([]*File, info.NumFiles())
-			for i := 0; i < info.NumFiles(); i++ {
-				t.files[i] = NewFile(t, files, i)
-			}
-		}
-	}
 	return t.files
 }
 
 func (t *Torrent) GetFile(id int) (*File, error) {
-	if !t.HasMetadata() {
+	if !t.hasMetadata {
 		return nil, NoMetadataError
 	}
-	files := t.Files()
-	if id < 0 || id >= len(files) {
+	if id < 0 || id >= len(t.files) {
 		return nil, InvalidFileIdError
 	}
-	return files[id], nil
+	return t.files[id], nil
 }
 
 func (t *Torrent) SetPriority(priority uint) {
 	log.Debugf("Setting torrent %s with priority %d", t.infoHash, priority)
-	if !t.HasMetadata() {
+	if !t.hasMetadata {
 		panic("don't have metadata")
 	}
-	for _, f := range t.Files() {
+	for _, f := range t.files {
 		f.SetPriority(priority)
 	}
 }
 
 func (t *Torrent) AllFilesDownloading() bool {
-	if !t.HasMetadata() {
+	if !t.hasMetadata {
 		panic("don't have metadata")
 	}
-	for _, f := range t.Files() {
+	for _, f := range t.files {
 		if f.priority == DontDownloadPriority {
 			return false
 		}
