@@ -146,8 +146,7 @@ func torrentStatus(service *bittorrent.Service) gin.HandlerFunc {
 func torrentFiles(service *bittorrent.Service) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		onGetTorrent(ctx, service, func(torrent *bittorrent.Torrent) {
-			if torrent.HasMetadata() {
-				files := torrent.Files()
+			if files, err := torrent.Files(); err == nil {
 				response := make([]FileInfoResponse, len(files))
 				for i, file := range files {
 					response[i].FileInfo = file.Info()
@@ -159,7 +158,7 @@ func torrentFiles(service *bittorrent.Service) gin.HandlerFunc {
 				}
 				ctx.JSON(http.StatusOK, response)
 			} else {
-				ctx.JSON(http.StatusInternalServerError, NewErrorResponse("no metadata"))
+				ctx.JSON(http.StatusInternalServerError, NewErrorResponse(err))
 			}
 		})
 	}
@@ -177,11 +176,10 @@ func torrentFiles(service *bittorrent.Service) gin.HandlerFunc {
 func downloadTorrent(service *bittorrent.Service) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		onGetTorrent(ctx, service, func(torrent *bittorrent.Torrent) {
-			if torrent.HasMetadata() {
-				torrent.SetPriority(bittorrent.DefaultPriority)
+			if err := torrent.SetPriority(bittorrent.DefaultPriority); err == nil {
 				ctx.JSON(http.StatusOK, NewMessageResponse("torrent '%s' is downloading", torrent.InfoHash()))
 			} else {
-				ctx.JSON(http.StatusInternalServerError, NewErrorResponse("no metadata"))
+				ctx.JSON(http.StatusInternalServerError, NewErrorResponse(err))
 			}
 		})
 	}
@@ -199,11 +197,10 @@ func downloadTorrent(service *bittorrent.Service) gin.HandlerFunc {
 func stopTorrent(service *bittorrent.Service) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		onGetTorrent(ctx, service, func(torrent *bittorrent.Torrent) {
-			if torrent.HasMetadata() {
-				torrent.SetPriority(bittorrent.DontDownloadPriority)
+			if err := torrent.SetPriority(bittorrent.DontDownloadPriority); err == nil {
 				ctx.JSON(http.StatusOK, NewMessageResponse("stopped torrent '%s' download", torrent.InfoHash()))
 			} else {
-				ctx.JSON(http.StatusInternalServerError, NewErrorResponse("no metadata"))
+				ctx.JSON(http.StatusInternalServerError, NewErrorResponse(err))
 			}
 		})
 	}

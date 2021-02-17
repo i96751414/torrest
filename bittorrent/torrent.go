@@ -236,8 +236,11 @@ func (t *Torrent) GetStatus() *TorrentStatus {
 	}
 }
 
-func (t *Torrent) Files() []*File {
-	return t.files
+func (t *Torrent) Files() ([]*File, error) {
+	if !t.hasMetadata {
+		return nil, NoMetadataError
+	}
+	return t.files, nil
 }
 
 func (t *Torrent) GetFile(id int) (*File, error) {
@@ -250,26 +253,27 @@ func (t *Torrent) GetFile(id int) (*File, error) {
 	return t.files[id], nil
 }
 
-func (t *Torrent) SetPriority(priority uint) {
+func (t *Torrent) SetPriority(priority uint) error {
 	log.Debugf("Setting torrent %s with priority %d", t.infoHash, priority)
 	if !t.hasMetadata {
-		panic("don't have metadata")
+		return NoMetadataError
 	}
 	for _, f := range t.files {
 		f.SetPriority(priority)
 	}
+	return nil
 }
 
-func (t *Torrent) AllFilesDownloading() bool {
+func (t *Torrent) AllFilesDownloading() (bool, error) {
 	if !t.hasMetadata {
-		panic("don't have metadata")
+		return false, NoMetadataError
 	}
 	for _, f := range t.files {
 		if f.priority == DontDownloadPriority {
-			return false
+			return false, nil
 		}
 	}
-	return true
+	return true, nil
 }
 
 func (t *Torrent) getFilesDownloadedBytes() []int64 {
