@@ -185,8 +185,8 @@ func (s *Service) onSaveResumeData(alert libtorrent.SaveResumeDataAlert) {
 }
 
 func (s *Service) onMetadataReceived(alert libtorrent.MetadataReceivedAlert) {
-	torrentHandle := alert.GetHandle()
-	infoHash := getHandleInfoHash(torrentHandle)
+	torrentInfo := alert.GetHandle().TorrentFile()
+	infoHash := getInfoHash(torrentInfo.InfoHash())
 
 	if torrent, err := s.GetTorrent(infoHash); err == nil {
 		torrent.onMetadataReceived()
@@ -195,7 +195,7 @@ func (s *Service) onMetadataReceived(alert libtorrent.MetadataReceivedAlert) {
 	}
 
 	log.Debugf("Saving %s.torrent", infoHash)
-	torrentFile := libtorrent.NewCreateTorrent(torrentHandle.TorrentFile())
+	torrentFile := libtorrent.NewCreateTorrent(torrentInfo)
 	defer libtorrent.DeleteCreateTorrent(torrentFile)
 	torrentContent := torrentFile.Generate()
 	defer libtorrent.DeleteEntry(torrentContent)
