@@ -41,7 +41,7 @@ type Torrent struct {
 	handle       libtorrent.TorrentHandle
 	infoHash     string
 	defaultName  string
-	mu           *sync.Mutex
+	mu           *sync.RWMutex
 	closing      chan interface{}
 	isPaused     bool
 	files        []*File
@@ -107,7 +107,7 @@ func NewTorrent(service *Service, handle libtorrent.TorrentHandle, infoHash stri
 		handle:      handle,
 		infoHash:    infoHash,
 		defaultName: name,
-		mu:          &sync.Mutex{},
+		mu:          &sync.RWMutex{},
 		closing:     make(chan interface{}),
 		isPaused:    paused,
 	}
@@ -129,6 +129,8 @@ func (t *Torrent) onMetadataReceived() {
 		f[i] = NewFile(t, files, i)
 	}
 
+	t.mu.Lock()
+	defer t.mu.Unlock()
 	t.files = f
 	t.hasMetadata = true
 }
@@ -138,12 +140,16 @@ func (t *Torrent) InfoHash() string {
 }
 
 func (t *Torrent) Pause() {
+	t.mu.Lock()
+	defer t.mu.Unlock()
 	t.handle.UnsetFlags(libtorrent.GetAutoManaged())
 	t.handle.Pause(libtorrent.TorrentHandleClearDiskCache)
 	t.isPaused = true
 }
 
 func (t *Torrent) Resume() {
+	t.mu.Lock()
+	defer t.mu.Unlock()
 	t.handle.SetFlags(libtorrent.GetAutoManaged())
 	t.isPaused = false
 }
@@ -154,6 +160,9 @@ func (t *Torrent) getState(file ...*File) LTStatus {
 	}
 	if hasFlagsUint64(t.handle.Flags(), libtorrent.GetPaused()|libtorrent.GetAutoManaged()) {
 		return QueuedStatus
+	}
+	if !t.hasMetadata {
+		return FindingStatus
 	}
 
 	status := t.handle.Status()
@@ -198,6 +207,8 @@ func (t *Torrent) GetInfo() *TorrentInfo {
 }
 
 func (t *Torrent) GetStatus() *TorrentStatus {
+	t.mu.RLock()
+	defer t.mu.RUnlock()
 	status := t.handle.Status()
 	defer libtorrent.DeleteTorrentStatus(status)
 
@@ -264,18 +275,6 @@ func (t *Torrent) SetPriority(priority uint) error {
 	return nil
 }
 
-func (t *Torrent) AllFilesDownloading() (bool, error) {
-	if !t.hasMetadata {
-		return false, NoMetadataError
-	}
-	for _, f := range t.files {
-		if f.priority == DontDownloadPriority {
-			return false, nil
-		}
-	}
-	return true, nil
-}
-
 func (t *Torrent) getFilesDownloadedBytes() []int64 {
 	pVec := libtorrent.NewStdVectorSizeType()
 	defer libtorrent.DeleteStdVectorSizeType(pVec)
@@ -286,15 +285,6 @@ func (t *Torrent) getFilesDownloadedBytes() []int64 {
 		progresses[i] = pVec.Get(i)
 	}
 	return progresses
-}
-
-func containsInt(arr []int, value int) bool {
-	for _, a := range arr {
-		if a == value {
-			return true
-		}
-	}
-	return false
 }
 
 func (t *Torrent) piecesBytesMissing(pieces []int) (missing int64) {

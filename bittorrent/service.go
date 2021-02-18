@@ -174,13 +174,13 @@ func (s *Service) onSaveResumeData(alert libtorrent.SaveResumeDataAlert) {
 	defer libtorrent.DeleteEntry(entry)
 
 	bEncoded := []byte(libtorrent.Bencode(entry))
-	if _, err := DecodeTorrentData(bEncoded); err == nil {
-		if err := ioutil.WriteFile(s.fastResumeFilePath(infoHash), bEncoded, 0644); err != nil {
-			log.Errorf("Failed saving '%s.fastresume': %s", infoHash, err)
+	if _, e1 := DecodeTorrentData(bEncoded); e1 == nil {
+		if e2 := ioutil.WriteFile(s.fastResumeFilePath(infoHash), bEncoded, 0644); e2 != nil {
+			log.Errorf("Failed saving '%s.fastresume': %s", infoHash, e2)
 		}
 	} else {
 		log.Warningf("Resume data corrupted for %s, %d bytes received and failed to decode with: %s",
-			torrentStatus.GetName(), len(bEncoded), err)
+			torrentStatus.GetName(), len(bEncoded), e1)
 	}
 }
 

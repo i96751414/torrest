@@ -45,6 +45,15 @@ func hasFlagsUint64(flags, f uint64) bool {
 	return flags&f == f
 }
 
+func containsInt(arr []int, value int) bool {
+	for _, a := range arr {
+		if a == value {
+			return true
+		}
+	}
+	return false
+}
+
 func saveGobData(path string, data interface{}, perm os.FileMode) error {
 	f, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, perm)
 	if err != nil {

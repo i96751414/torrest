@@ -142,6 +142,8 @@ func (f *File) SetPriority(priority uint) {
 }
 
 func (f *File) IsDownloading() bool {
+	f.mu.RLock()
+	defer f.mu.RUnlock()
 	return f.isBuffering || f.priority != DontDownloadPriority
 }
 
@@ -208,8 +210,6 @@ func (f *File) GetBufferingProgress() float64 {
 }
 
 func (f *File) BufferLength() int64 {
-	f.mu.RLock()
-	defer f.mu.RUnlock()
 	return f.bufferSize
 }
 
