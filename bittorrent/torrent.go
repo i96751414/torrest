@@ -371,3 +371,8 @@ func (t *Torrent) checkAvailableSpace() {
 		}
 	}
 }
+
+func (t *Torrent) close() {
+	close(t.closing)
+	libtorrent.DeleteTorrentHandle(t.handle)
+}

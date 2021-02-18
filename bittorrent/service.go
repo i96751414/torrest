@@ -482,6 +482,9 @@ func (s *Service) reset() {
 	log.Debug("Destroying service")
 	libtorrent.DeleteSettingsPack(s.settingsPack)
 	libtorrent.DeleteSession(s.session)
+	for _, t := range s.torrents {
+		t.close()
+	}
 }
 
 func (s *Service) addTorrentWithParams(torrentParams libtorrent.AddTorrentParams, infoHash string, isResumeData, noDownload bool) error {
@@ -510,7 +513,10 @@ func (s *Service) addTorrentWithParams(torrentParams libtorrent.AddTorrentParams
 		errorCode := libtorrent.NewErrorCode()
 		defer libtorrent.DeleteErrorCode(errorCode)
 		torrentHandle := s.session.AddTorrent(torrentParams, errorCode)
-		if torrentHandle == nil || !torrentHandle.IsValid() || errorCode.Failed() {
+		if errorCode.Failed() || !torrentHandle.IsValid() {
+			if torrentHandle.Swigcptr() != 0 {
+				libtorrent.DeleteTorrentHandle(torrentHandle)
+			}
 			log.Errorf("Error adding torrent '%s': %v", infoHash, errorCode.Message())
 			return LoadTorrentError
 		} else {
@@ -842,9 +848,9 @@ func (s *Service) RemoveTorrent(infoHash string, removeFiles bool) error {
 		if removeFiles {
 			flags |= libtorrent.SessionHandleDeleteFiles
 		}
-		s.session.RemoveTorrent(torrent.handle, flags)
 		s.torrents = append(s.torrents[:index], s.torrents[index+1:]...)
-		close(torrent.closing)
+		s.session.RemoveTorrent(torrent.handle, flags)
+		torrent.close()
 	}
 
 	return err
