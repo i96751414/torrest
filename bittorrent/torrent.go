@@ -251,7 +251,9 @@ func (t *Torrent) Files() ([]*File, error) {
 	if !t.hasMetadata {
 		return nil, NoMetadataError
 	}
-	return t.files, nil
+	files := make([]*File, len(t.files))
+	copy(files, t.files)
+	return files, nil
 }
 
 func (t *Torrent) GetFile(id int) (*File, error) {
