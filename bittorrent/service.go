@@ -836,6 +836,7 @@ func (s *Service) RemoveTorrent(infoHash string, removeFiles bool) error {
 		s.deletePartsFile(infoHash)
 		s.deleteFastResumeFile(infoHash)
 		s.deleteTorrentFile(infoHash)
+		s.deleteMagnetFile(infoHash)
 
 		var flags uint
 		if removeFiles {
