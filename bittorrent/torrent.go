@@ -2,6 +2,7 @@ package bittorrent
 
 import (
 	"bytes"
+	"runtime"
 	"sync"
 
 	"github.com/dustin/go-humanize"
@@ -115,6 +116,10 @@ func NewTorrent(service *Service, handle libtorrent.TorrentHandle, infoHash stri
 	if status.GetHasMetadata() {
 		t.onMetadataReceived()
 	}
+
+	runtime.SetFinalizer(t, func(torrent *Torrent) {
+		libtorrent.DeleteTorrentHandle(torrent.handle)
+	})
 
 	return t
 }
@@ -374,7 +379,14 @@ func (t *Torrent) checkAvailableSpace() {
 	}
 }
 
-func (t *Torrent) close() {
+func (t *Torrent) remove(removeFiles bool) {
 	close(t.closing)
-	libtorrent.DeleteTorrentHandle(t.handle)
+
+	var flags uint
+	if removeFiles {
+		flags |= libtorrent.SessionHandleDeleteFiles
+	}
+
+	t.service.session.RemoveTorrent(t.handle, flags)
+	log.Debugf("Torrent %s removed and destroyed", t.infoHash)
 }

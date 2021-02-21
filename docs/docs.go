@@ -210,6 +210,12 @@ var doc = `{
                         "schema": {
                             "$ref": "#/definitions/settings.Settings"
                         }
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "reset torrents",
+                        "name": "reset",
+                        "in": "query"
                     }
                 ],
                 "responses": {

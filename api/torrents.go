@@ -57,7 +57,7 @@ func listTorrents(service *bittorrent.Service) gin.HandlerFunc {
 func removeTorrent(service *bittorrent.Service) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		infoHash := ctx.Param("infoHash")
-		removeFiles := ctx.DefaultQuery("delete", "true") == "true"
+		removeFiles := ctx.DefaultQuery("delete", "true") != "false"
 
 		if err := service.RemoveTorrent(infoHash, removeFiles); err == nil {
 			ctx.JSON(http.StatusOK, NewMessageResponse("Torrent '%s' deleted", infoHash))

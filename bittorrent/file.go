@@ -48,7 +48,7 @@ func NewFile(torrent *Torrent, storage libtorrent.FileStorage, index int) *File 
 		length:      storage.FileSize(index),
 		path:        storage.FilePath(index),
 		name:        storage.FileName(index),
-		pieceLength: int64(torrent.handle.TorrentFile().PieceLength()),
+		pieceLength: int64(storage.PieceLength()),
 		priority:    torrent.handle.FilePriority(index).(uint),
 	}
 

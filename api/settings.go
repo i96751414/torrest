@@ -27,6 +27,7 @@ func getSettings(config *settings.Settings) gin.HandlerFunc {
 // @Accept json
 // @Produce json
 // @Param default body settings.Settings false "Settings to be set"
+// @Param reset query boolean false "reset torrents"
 // @Success 200 {object} settings.Settings
 // @Failure 500 {object} ErrorResponse
 // @Router /settings/set [post]
@@ -45,7 +46,8 @@ func setSettings(config *settings.Settings, service *bittorrent.Service) gin.Han
 			log.Errorf("Failed saving settings: %s", err)
 		}
 		setLogLevel(config)
-		service.Reconfigure(config)
+		reset := ctx.DefaultQuery("reset", "false") == "true"
+		service.Reconfigure(config, reset)
 		ctx.JSON(http.StatusOK, config)
 	}
 }

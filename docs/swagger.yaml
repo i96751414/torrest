@@ -389,6 +389,10 @@ paths:
         name: default
         schema:
           $ref: '#/definitions/settings.Settings'
+      - description: reset torrents
+        in: query
+        name: reset
+        type: boolean
       produces:
       - application/json
       responses:

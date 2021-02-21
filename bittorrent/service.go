@@ -87,26 +87,23 @@ type Magnet struct {
 func NewService(config *settings.Settings) *Service {
 	createDir(config.DownloadPath)
 	createDir(config.TorrentsPath)
-	s := &Service{mu: &sync.RWMutex{}, wg: &sync.WaitGroup{}}
-	s.start(config)
-	return s
-}
 
-func (s *Service) start(config *settings.Settings) {
-	log.Debug("Starting service")
-	s.config = config.Clone()
-	s.closing = make(chan interface{})
+	s := &Service{
+		settingsPack: libtorrent.NewSettingsPack(),
+		mu:           &sync.RWMutex{},
+		wg:           &sync.WaitGroup{},
+		closing:      make(chan interface{}),
+	}
 
-	logging.SetLevel(s.config.ServiceLogLevel, log.Module)
-	logging.SetLevel(s.config.AlertsLogLevel, alertsLog.Module)
-
-	s.configure()
+	s.configure(config)
 	s.loadTorrentFiles()
 
 	s.wg.Add(3)
 	go s.saveResumeDataLoop()
 	go s.alertsConsumer()
 	go s.downloadProgress()
+
+	return s
 }
 
 func (s *Service) alertsConsumer() {
@@ -250,24 +247,58 @@ func (s *Service) saveResumeDataLoop() {
 	}
 }
 
-func (s *Service) Close() {
-	log.Info("Stopping Service")
-	s.reset()
+func (s *Service) stopServices() {
+	log.Debug("Stopping LSD/DHT/UPNP/NAT-PPM")
+	s.settingsPack.SetBool("enable_lsd", false)
+	s.settingsPack.SetBool("enable_dht", false)
+	s.settingsPack.SetBool("enable_upnp", false)
+	s.settingsPack.SetBool("enable_natpmp", false)
+	s.session.ApplySettings(s.settingsPack)
 }
 
-func (s *Service) Reconfigure(config *settings.Settings) {
+func (s *Service) removeTorrents() {
+	for _, torrent := range s.torrents {
+		torrent.remove(false)
+	}
+	s.torrents = nil
+}
+
+func (s *Service) Close() {
+	log.Info("Stopping Service")
+	s.stopServices()
+
+	log.Debug("Closing service routines")
+	close(s.closing)
+	s.wg.Wait()
+
+	log.Debug("Destroying service")
+	s.removeTorrents()
+	libtorrent.DeleteSession(s.session)
+	libtorrent.DeleteSettingsPack(s.settingsPack)
+}
+
+func (s *Service) Reconfigure(config *settings.Settings, reset bool) {
 	log.Info("Reconfiguring Service")
 	s.mu.Lock()
 	defer s.mu.Unlock()
+
 	createDir(config.DownloadPath)
 	createDir(config.TorrentsPath)
-	s.reset()
-	s.start(config)
+
+	s.configure(config)
+
+	if reset {
+		log.Debug("Resetting torrents")
+		s.removeTorrents()
+		s.loadTorrentFiles()
+	}
 }
 
-func (s *Service) configure() {
-	s.torrents = nil
-	s.settingsPack = libtorrent.NewSettingsPack()
+func (s *Service) configure(config *settings.Settings) {
+	s.config = config.Clone()
+
+	logging.SetLevel(s.config.ServiceLogLevel, log.Module)
+	logging.SetLevel(s.config.AlertsLogLevel, alertsLog.Module)
 
 	log.Info("Applying session settings")
 
@@ -450,8 +481,13 @@ func (s *Service) configure() {
 	s.settingsPack.SetBool("enable_natpmp", !s.config.DisableNatPMP)
 	s.settingsPack.SetBool("enable_lsd", !s.config.DisableLSD)
 
-	s.session = libtorrent.NewSession(s.settingsPack, libtorrent.SessionHandleAddDefaultPlugins)
-	log.Debug("Configuration done")
+	if s.session == nil {
+		log.Debug("First configuration, starting a new session")
+		s.session = libtorrent.NewSession(s.settingsPack, libtorrent.SessionHandleAddDefaultPlugins)
+	} else {
+		log.Debug("Modifying session settings")
+		s.session.ApplySettings(s.settingsPack)
+	}
 }
 
 func (s *Service) setBufferingRateLimit(enable bool) {
@@ -465,25 +501,6 @@ func (s *Service) setBufferingRateLimit(enable bool) {
 			s.settingsPack.SetInt("upload_rate_limit", 0)
 		}
 		s.session.ApplySettings(s.settingsPack)
-	}
-}
-
-func (s *Service) reset() {
-	log.Debug("Stopping LSD/DHT/UPNP/NAT-PPM")
-	s.settingsPack.SetBool("enable_lsd", false)
-	s.settingsPack.SetBool("enable_dht", false)
-	s.settingsPack.SetBool("enable_upnp", false)
-	s.settingsPack.SetBool("enable_natpmp", false)
-	s.session.ApplySettings(s.settingsPack)
-
-	log.Debug("Closing service routines")
-	close(s.closing)
-	s.wg.Wait()
-	log.Debug("Destroying service")
-	libtorrent.DeleteSettingsPack(s.settingsPack)
-	libtorrent.DeleteSession(s.session)
-	for _, t := range s.torrents {
-		t.close()
 	}
 }
 
@@ -669,8 +686,10 @@ func (s *Service) loadTorrentFiles() {
 	for _, magnet := range magnets {
 		data := Magnet{}
 		if err := readGobData(magnet, &data); err == nil {
-			if _, e := s.addMagnet(data.Uri, data.Download, false); e == DuplicateTorrentError {
-				deleteFile(magnet)
+			if infoHash, e1 := s.addMagnet(data.Uri, data.Download, false); e1 == DuplicateTorrentError {
+				if _, t, e2 := s.getTorrent(infoHash); e2 == nil && t.hasMetadata {
+					deleteFile(magnet)
+				}
 			}
 		} else {
 			log.Errorf("Failed to read magnet file '%s': %s", magnet, err)
@@ -843,14 +862,8 @@ func (s *Service) RemoveTorrent(infoHash string, removeFiles bool) error {
 		s.deleteFastResumeFile(infoHash)
 		s.deleteTorrentFile(infoHash)
 		s.deleteMagnetFile(infoHash)
-
-		var flags uint
-		if removeFiles {
-			flags |= libtorrent.SessionHandleDeleteFiles
-		}
 		s.torrents = append(s.torrents[:index], s.torrents[index+1:]...)
-		s.session.RemoveTorrent(torrent.handle, flags)
-		torrent.close()
+		torrent.remove(removeFiles)
 	}
 
 	return err
