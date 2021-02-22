@@ -7,7 +7,7 @@ NAME = torrest
 GO_PKG = github.com/i96751414/torrest
 GO = go
 DOCKER = docker
-LIBTORRENT_TAG = 1.2.12.0
+LIBTORRENT_TAG = 1.2.12.1
 UPX = upx
 CGO_ENABLED = 1
 BUILD_DIR = build
@@ -141,9 +141,9 @@ $(BUILD_PATH)/$(OUTPUT_NAME): libtorrent-go-defines $(BUILD_PATH) force
 		-gcflags '$(GO_GCFLAGS)' \
 		-ldflags '$(GO_LDFLAGS)' \
 		-o '$(BUILD_PATH)/$(OUTPUT_NAME)' \
-		$(PKGDIR)
-	#set -x && \
-	#$(GO) vet -unsafeptr=false .
+		$(PKGDIR) && \
+	set -x && \
+	$(GO) vet -unsafeptr=false .
 
 vendor_darwin vendor_linux:
 
