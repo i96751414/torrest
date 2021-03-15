@@ -168,7 +168,7 @@ func (s *Settings) Update(data []byte) (err error) {
 
 // Clone clones the settings
 func (s *Settings) Clone() *Settings {
-	n := new(Settings)
+	n := &Settings{settingsPath: s.settingsPath}
 	if err := n.UpdateFrom(s); err != nil {
 		panic("Failed cloning settings: " + err.Error())
 	}
