@@ -160,11 +160,8 @@ func (s *Settings) SetSettingsPath(path string) {
 
 // Update updates the settings with the json object provided
 func (s *Settings) Update(data []byte) (err error) {
-	settings := s.Clone()
-	if err = json.Unmarshal(data, settings); err == nil {
-		if err = validate.Struct(settings); err == nil {
-			err = copier.Copy(s, settings)
-		}
+	if err = json.Unmarshal(data, s); err == nil {
+		err = validate.Struct(s)
 	}
 	return
 }
@@ -172,10 +169,15 @@ func (s *Settings) Update(data []byte) (err error) {
 // Clone clones the settings
 func (s *Settings) Clone() *Settings {
 	n := new(Settings)
-	if err := copier.Copy(n, s); err != nil {
+	if err := n.UpdateFrom(s); err != nil {
 		panic("Failed cloning settings: " + err.Error())
 	}
 	return n
+}
+
+// UpdateFrom updates the settings with the settings object provided
+func (s *Settings) UpdateFrom(settings *Settings) error {
+	return copier.Copy(s, settings)
 }
 
 // Save saves the current settings to path

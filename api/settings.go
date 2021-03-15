@@ -38,16 +38,24 @@ func setSettings(config *settings.Settings, service *bittorrent.Service) gin.Han
 			ctx.JSON(http.StatusInternalServerError, NewErrorResponse(err))
 			return
 		}
-		if err := config.Update(body); err != nil {
+
+		newConfig := config.Clone()
+		if err := newConfig.Update(body); err != nil {
 			ctx.JSON(http.StatusInternalServerError, NewErrorResponse(err))
 			return
 		}
-		if err := config.Save(); err != nil {
+
+		setLogLevel(newConfig)
+		reset := ctx.DefaultQuery("reset", "false") == "true"
+		service.Reconfigure(newConfig, reset)
+
+		if err := newConfig.Save(); err != nil {
 			log.Errorf("Failed saving settings: %s", err)
 		}
-		setLogLevel(config)
-		reset := ctx.DefaultQuery("reset", "false") == "true"
-		service.Reconfigure(config, reset)
-		ctx.JSON(http.StatusOK, config)
+		if err := config.UpdateFrom(newConfig); err != nil {
+			log.Errorf("Failed updating global settings: %s", err)
+		}
+
+		ctx.JSON(http.StatusOK, newConfig)
 	}
 }

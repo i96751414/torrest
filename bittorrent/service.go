@@ -295,7 +295,7 @@ func (s *Service) Reconfigure(config *settings.Settings, reset bool) {
 }
 
 func (s *Service) configure(config *settings.Settings) {
-	s.config = config.Clone()
+	s.config = config
 
 	logging.SetLevel(s.config.ServiceLogLevel, log.Module)
 	logging.SetLevel(s.config.AlertsLogLevel, alertsLog.Module)

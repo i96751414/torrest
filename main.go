@@ -47,7 +47,7 @@ func main() {
 	log.Info("Loading configs")
 	config, err := settings.Load(settingsPath)
 	if err != nil {
-		log.Errorf("Failed loading settings: %s", err)
+		log.Fatalf("Failed loading settings: %s", err)
 	}
 
 	log.Info("Starting bittorrent service")
