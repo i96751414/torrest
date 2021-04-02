@@ -103,7 +103,7 @@ WORKDIR = $(shell pwd)
 OUTPUT_NAME = $(NAME)$(EXT)
 BUILD_PATH = $(BUILD_DIR)/$(TARGET_OS)_$(TARGET_ARCH)
 # LIBTORRENT_GO_HOME = "$(GOPATH)/src/$(LIBTORRENT_GO)"
-LIBTORRENT_GO_HOME = "$(shell $(GO) list -m -f '{{.Dir}}' $(LIBTORRENT_GO))"
+LIBTORRENT_GO_HOME = "$$($(GO) list -m -f '{{.Dir}}' $(LIBTORRENT_GO))"
 
 USERGRP = "$(shell id -u):$(shell id -g)"
 
