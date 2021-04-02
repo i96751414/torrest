@@ -7,7 +7,7 @@ NAME = torrest
 GO_PKG = github.com/i96751414/torrest
 GO = go
 DOCKER = docker
-LIBTORRENT_TAG = 1.2.12.1
+LIBTORRENT_TAG = 1.2.13-0
 UPX = upx
 CGO_ENABLED = 1
 BUILD_DIR = build
@@ -102,8 +102,8 @@ WORKDIR = $(shell pwd)
 
 OUTPUT_NAME = $(NAME)$(EXT)
 BUILD_PATH = $(BUILD_DIR)/$(TARGET_OS)_$(TARGET_ARCH)
-LIBTORRENT_GO_HOME = "$(GOPATH)/src/$(LIBTORRENT_GO)"
-# LIBTORRENT_GO_HOME = "$(shell $(GO) list -m -f '{{.Dir}}' $(LIBTORRENT_GO))"
+# LIBTORRENT_GO_HOME = "$(GOPATH)/src/$(LIBTORRENT_GO)"
+LIBTORRENT_GO_HOME = "$(shell $(GO) list -m -f '{{.Dir}}' $(LIBTORRENT_GO))"
 
 USERGRP = "$(shell id -u):$(shell id -g)"
 
@@ -120,10 +120,17 @@ $(PLATFORMS):
 force:
 	@true
 
-libtorrent-go: force
+dependencies:
+	$(GO) mod download
+	chmod -R 755 $(LIBTORRENT_GO_HOME)
+
+libtorrent-go: dependencies force
 	$(MAKE) -C $(LIBTORRENT_GO_HOME) $(PLATFORM)
 
-libtorrent-go-defines: force
+libtorrent-go-debug: dependencies force
+	$(MAKE) -C $(LIBTORRENT_GO_HOME) debug PLATFORM=$(PLATFORM)
+
+libtorrent-go-defines: dependencies force
 	$(MAKE) -C $(LIBTORRENT_GO_HOME) defines
 
 $(BUILD_PATH):
@@ -201,9 +208,6 @@ checksum: $(BUILD_PATH)/$(OUTPUT_NAME)
 	shasum -b $(BUILD_PATH)/$(OUTPUT_NAME) | cut -d' ' -f1 >> $(BUILD_PATH)/$(OUTPUT_NAME)
 
 dist: torrest vendor_$(TARGET_OS) strip checksum
-
-libs: force
-	$(MAKE) libtorrent-go PLATFORM=$(PLATFORM)
 
 pull-all:
 	for i in $(PLATFORMS); do \

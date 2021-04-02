@@ -28,16 +28,10 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v2
         with:
-          go-version: 1.14
-
-      - name: Download dependencies
-        run: go get -d ./...
+          go-version: 1.16.2
 
       - name: Build ${{ matrix.platform }}
-        run: |
-          set -e
-          make libs PLATFORM=${{ matrix.platform }}
-          make ${{ matrix.platform }}
+        run: make ${{ matrix.platform }}
 
       - name: Generate ${{ matrix.platform }} zip
         id: generate_zip
