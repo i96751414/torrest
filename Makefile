@@ -152,19 +152,11 @@ $(BUILD_PATH)/$(OUTPUT_NAME): libtorrent-go-defines $(BUILD_PATH) force
 	set -x && \
 	$(GO) vet -unsafeptr=false .
 
-vendor_darwin vendor_linux:
-
-vendor_windows:
-	find "$(GOPATH)/pkg/$(GOOS)_$(GOARCH)" -name *.dll -exec cp -f {} $(BUILD_PATH) \;
+vendor_darwin vendor_linux vendor_windows:
 
 vendor_android:
 	cp $(CROSS_ROOT)/sysroot/usr/lib/$(CROSS_TRIPLE)/libc++_shared.so $(BUILD_PATH)
 	chmod +rx $(BUILD_PATH)/libc++_shared.so
-
-vendor_libs_windows:
-
-vendor_libs_android:
-	$(CROSS_ROOT)/sysroot/usr/lib/$(CROSS_TRIPLE)/libc++_shared.so
 
 torrest: $(BUILD_PATH)/$(OUTPUT_NAME)
 
