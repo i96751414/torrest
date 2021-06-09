@@ -762,28 +762,20 @@ func (s *Service) downloadProgress() {
 					if progress == 1 && seedingTime == 0 {
 						seedingTime = torrentStatus.GetFinishedDuration()
 					}
+					downloadTime := torrentStatus.GetActiveDuration() - seedingTime
+					allTimeDownload := torrentStatus.GetAllTimeDownload()
 
-					if s.config.SeedTimeLimit > 0 {
-						if seedingTime >= int64(s.config.SeedTimeLimit) {
-							log.Infof("Seeding time limit reached, pausing %s", torrentStatus.GetName())
-							t.Pause()
-						}
-					} else if s.config.SeedTimeRatioLimit > 0 {
-						if downloadTime := torrentStatus.GetActiveDuration() - seedingTime; downloadTime > 0 {
-							timeRatio := seedingTime * 100 / downloadTime
-							if timeRatio >= int64(s.config.SeedTimeRatioLimit) {
-								log.Infof("Seeding time ratio reached, pausing %s", torrentStatus.GetName())
-								t.Pause()
-							}
-						}
-					} else if s.config.ShareRatioLimit > 0 {
-						if allTimeDownload := torrentStatus.GetAllTimeDownload(); allTimeDownload > 0 {
-							ratio := torrentStatus.GetAllTimeUpload() * 100 / allTimeDownload
-							if ratio >= int64(s.config.ShareRatioLimit) {
-								log.Infof("Share ratio reached, pausing %s", torrentStatus.GetName())
-								t.Pause()
-							}
-						}
+					if s.config.SeedTimeLimit > 0 && seedingTime >= int64(s.config.SeedTimeLimit) {
+						log.Infof("Seeding time limit reached, pausing %s", torrentStatus.GetName())
+						t.Pause()
+					} else if s.config.SeedTimeRatioLimit > 0 && downloadTime > 0 &&
+						seedingTime*100/downloadTime >= int64(s.config.SeedTimeRatioLimit) {
+						log.Infof("Seeding time ratio reached, pausing %s", torrentStatus.GetName())
+						t.Pause()
+					} else if s.config.ShareRatioLimit > 0 && allTimeDownload > 0 &&
+						torrentStatus.GetAllTimeUpload()*100/allTimeDownload >= int64(s.config.ShareRatioLimit) {
+						log.Infof("Share ratio reached, pausing %s", torrentStatus.GetName())
+						t.Pause()
 					}
 				}
 
