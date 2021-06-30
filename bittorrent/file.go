@@ -135,9 +135,9 @@ func (f *File) SetPriority(priority uint) {
 	defer f.mu.Unlock()
 
 	f.priority = priority
-	if priority == DontDownloadPriority {
-		f.isBuffering = false
-	}
+	f.isBuffering = false
+	f.bufferSize = 0
+	f.bufferPieces = nil
 	f.torrent.handle.FilePriority(f.index, priority)
 }
 
@@ -145,6 +145,24 @@ func (f *File) IsDownloading() bool {
 	f.mu.RLock()
 	defer f.mu.RUnlock()
 	return f.isBuffering || f.priority != DontDownloadPriority
+}
+
+func (f *File) verifyBufferingState() bool {
+	isBuffering := false
+
+	if f.isBuffering {
+		f.mu.Lock()
+		defer f.mu.Unlock()
+		if f.isBuffering {
+			if f.bufferBytesMissing() == 0 {
+				f.isBuffering = false
+			} else {
+				isBuffering = true
+			}
+		}
+	}
+
+	return isBuffering
 }
 
 func (f *File) addBufferPiece(piece int, info libtorrent.TorrentInfo) {
@@ -181,7 +199,6 @@ func (f *File) Buffer(startBufferSize, endBufferSize int64) {
 	}
 
 	f.isBuffering = true
-	f.torrent.service.setBufferingRateLimit(false)
 }
 
 func (f *File) bufferBytesMissing() int64 {

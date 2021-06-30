@@ -63,6 +63,7 @@ type Service struct {
 	torrents     []*Torrent
 	mu           *sync.RWMutex
 	wg           *sync.WaitGroup
+	rateLimited  bool
 	closing      chan interface{}
 	UserAgent    string
 	downloadRate int64
@@ -92,6 +93,7 @@ func NewService(config *settings.Settings) *Service {
 		settingsPack: libtorrent.NewSettingsPack(),
 		mu:           &sync.RWMutex{},
 		wg:           &sync.WaitGroup{},
+		rateLimited:  true,
 		closing:      make(chan interface{}),
 	}
 
@@ -342,8 +344,6 @@ func (s *Service) configure(config *settings.Settings) {
 	s.settingsPack.SetBool("announce_to_all_trackers", true)
 	s.settingsPack.SetBool("announce_to_all_tiers", true)
 	s.settingsPack.SetInt("connection_speed", 500)
-	s.settingsPack.SetInt("download_rate_limit", 0)
-	s.settingsPack.SetInt("upload_rate_limit", 0)
 	s.settingsPack.SetInt("choking_algorithm", 0)
 	s.settingsPack.SetInt("share_ratio_limit", 0)
 	s.settingsPack.SetInt("seed_time_ratio_limit", 0)
@@ -381,9 +381,10 @@ func (s *Service) configure(config *settings.Settings) {
 		setPlatformSpecificSettings(s.settingsPack)
 	}
 
-	if !s.config.LimitAfterBuffering {
+	if !s.config.LimitAfterBuffering || s.rateLimited {
 		s.settingsPack.SetInt("download_rate_limit", s.config.MaxDownloadRate)
 		s.settingsPack.SetInt("upload_rate_limit", s.config.MaxUploadRate)
+		s.rateLimited = true
 	}
 
 	if s.config.ShareRatioLimit > 0 {
@@ -491,16 +492,17 @@ func (s *Service) configure(config *settings.Settings) {
 }
 
 func (s *Service) setBufferingRateLimit(enable bool) {
-	if s.config.LimitAfterBuffering {
+	if s.config.LimitAfterBuffering && enable != s.rateLimited {
+		log.Debugf("Setting rate limits, enable=%t", enable)
 		if enable {
 			s.settingsPack.SetInt("download_rate_limit", s.config.MaxDownloadRate)
 			s.settingsPack.SetInt("upload_rate_limit", s.config.MaxUploadRate)
 		} else {
-			log.Debug("Resetting rate limiting")
 			s.settingsPack.SetInt("download_rate_limit", 0)
 			s.settingsPack.SetInt("upload_rate_limit", 0)
 		}
 		s.session.ApplySettings(s.settingsPack)
+		s.rateLimited = enable
 	}
 }
 
@@ -726,9 +728,8 @@ func (s *Service) downloadProgress() {
 			var totalSize int64
 
 			hasFilesBuffering := false
-			bufferStateChanged := false
 
-			s.mu.RLock()
+			s.mu.Lock()
 
 			for _, t := range s.torrents {
 				if t.isPaused || !t.hasMetadata || !t.handle.IsValid() {
@@ -736,15 +737,8 @@ func (s *Service) downloadProgress() {
 				}
 
 				for _, f := range t.files {
-					if f.isBuffering {
-						f.mu.Lock()
-						if f.bufferBytesMissing() == 0 {
-							f.isBuffering = false
-							bufferStateChanged = true
-						} else {
-							hasFilesBuffering = true
-						}
-						f.mu.Unlock()
+					if f.verifyBufferingState() {
+						hasFilesBuffering = true
 					}
 				}
 
@@ -782,9 +776,7 @@ func (s *Service) downloadProgress() {
 				libtorrent.DeleteTorrentStatus(torrentStatus)
 			}
 
-			if bufferStateChanged && !hasFilesBuffering {
-				s.setBufferingRateLimit(true)
-			}
+			s.setBufferingRateLimit(!hasFilesBuffering)
 
 			s.downloadRate = totalDownloadRate
 			s.uploadRate = totalUploadRate
@@ -794,7 +786,7 @@ func (s *Service) downloadProgress() {
 				s.progress = 100
 			}
 
-			s.mu.RUnlock()
+			s.mu.Unlock()
 		}
 	}
 }
