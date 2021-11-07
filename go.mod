@@ -7,7 +7,7 @@ require (
 	github.com/dustin/go-humanize v1.0.0
 	github.com/gin-gonic/gin v1.7.4
 	github.com/go-playground/validator v9.31.0+incompatible
-	github.com/i96751414/libtorrent-go v1.2.13-0
+	github.com/i96751414/libtorrent-go v1.2.14-0
 	github.com/jinzhu/copier v0.3.2
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.1 // indirect
