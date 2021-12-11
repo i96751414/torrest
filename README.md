@@ -5,6 +5,8 @@
 
 Torrent service with a REST api, specially made for streaming.
 
+> :warning: **This project will soon be deprecated in favor of [torrest-cpp](https://github.com/i96751414/torrest-cpp)**
+
 ## Building
 1.  Build the [cross-compiler](https://github.com/i96751414/cross-compiler) and [libtorrent-go](https://github.com/i96751414/libtorrent-go) images, or alternatively, pull the libtorrent-go images from [Docker Hub](https://hub.docker.com/r/i96751414/libtorrent-go):
 
