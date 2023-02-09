@@ -5,7 +5,7 @@ go 1.16
 require (
 	github.com/alecthomas/template v0.0.0-20190718012654-fb15b899a751
 	github.com/dustin/go-humanize v1.0.0
-	github.com/gin-gonic/gin v1.7.4
+	github.com/gin-gonic/gin v1.7.7
 	github.com/go-playground/validator v9.31.0+incompatible
 	github.com/i96751414/libtorrent-go v1.2.14-0
 	github.com/jinzhu/copier v0.3.2
